@@ -1,0 +1,4 @@
+# SEPJ Gabès - Protect database directory
+# Deny all direct access to SQL files and scripts
+
+Require all denied

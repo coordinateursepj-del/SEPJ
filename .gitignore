@@ -1,0 +1,27 @@
+# Composer
+/vendor/
+composer.lock
+
+# Mail credentials — NEVER commit these
+/app/config/mail.local.php
+/app/config/.env
+
+# XAMPP logs
+/logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Upload directory (large binaries)
+/public/uploads/gallery/
+/public/uploads/content/
+
+# Claude Code internal files
+/.claude/

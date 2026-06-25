@@ -1,0 +1,22 @@
+﻿# SEPJ Gabès - Upload Security
+# Allow image files, block PHP execution and directory listing
+
+# Disable directory listing
+Options -Indexes
+
+# Block PHP execution
+<FilesMatch "\.(php|php\d+|phtml|phar|shtml|cgi|pl|py|asp|aspx|exe|inc)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Allow image access
+<FilesMatch "\.(jpg|jpeg|png|webp|gif|svg|ico)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Default: Allow access to everything else (images, css, etc)
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>

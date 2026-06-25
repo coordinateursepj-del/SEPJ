@@ -1,0 +1,4 @@
+# SEPJ Gabès - Protect app directory
+# Deny all direct access to application logic files
+
+Require all denied

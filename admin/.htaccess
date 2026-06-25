@@ -1,0 +1,17 @@
+# SEPJ Gabès - Admin Directory Protection
+# All PHP files are protected at the PHP level via session_start_secure() + require_login().
+# This file only prevents directory listing and sets the directory index.
+
+# Disable directory listing
+Options -Indexes
+
+# Default index file
+DirectoryIndex index.php
+
+# Redirect 404s to dashboard
+ErrorDocument 404 /sepj-gabes/admin/dashboard.php
+
+# Deny direct access to any non-PHP files (e.g., backup files, configs)
+<FilesMatch "\.(sql|log|bak|swp|env|json|lock|md)$">
+    Require all denied
+</FilesMatch>
