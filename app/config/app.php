@@ -7,11 +7,11 @@ define('APP_NAME', 'SEPJ Gabès');
 define('APP_NAME_AR', 'شركة البيئة والغراسة والبستنة بقابس');
 define('APP_NAME_FR', "Société d'Environnement, Plantation et Jardinage de Gabès");
 
-// Base URL - change this to match your XAMPP setup
-define('BASE_URL', 'http://localhost/sepj-gabes');
+// Base URL — production domain
+define('BASE_URL', 'https://sepjgabes.tn');
 
-// Application base paths for URL generation
-define('APP_BASE_PATH', '/sepj-gabes');
+// Application base paths — empty string = site runs at domain root
+define('APP_BASE_PATH', '');
 
 // Paths
 define('ROOT_PATH', dirname(__DIR__, 2));
