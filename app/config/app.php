@@ -7,11 +7,15 @@ define('APP_NAME', 'SEPJ Gabès');
 define('APP_NAME_AR', 'شركة البيئة والغراسة والبستنة بقابس');
 define('APP_NAME_FR', "Société d'Environnement, Plantation et Jardinage de Gabès");
 
-// Base URL — production domain
-define('BASE_URL', 'https://sepjgabes.tn');
-
-// Application base paths — empty string = site runs at domain root
-define('APP_BASE_PATH', '');
+// On production the vhost docroot is the project root, so there is
+// no base-path prefix. On localhost the project sits under /sepj-gabes.
+if (($_SERVER['HTTP_HOST'] ?? '') === 'appsoc.sepjgabes.tn') {
+    define('BASE_URL',      'https://appsoc.sepjgabes.tn');
+    define('APP_BASE_PATH', '');
+} else {
+    define('BASE_URL',      'http://localhost/sepj-gabes');
+    define('APP_BASE_PATH', '/sepj-gabes');
+}
 
 // Paths
 define('ROOT_PATH', dirname(__DIR__, 2));

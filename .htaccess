@@ -7,18 +7,26 @@ Options -Indexes
 # Block access to app directory
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # Block direct access to /app
-    RewriteRule ^app/ - [F,L]
-    
-    # Block direct access to /database
+
+    # Block direct access to sensitive directories
+    RewriteRule ^app/     - [F,L]
     RewriteRule ^database/ - [F,L]
-    
-    # Block direct access to /install (except check.php)
-    RewriteRule ^install/ - [F,L]
-    
-    # Block access to .sql, .md, .log files
-    RewriteRule \.(sql|md|log)$ - [F,L]
+    RewriteRule ^install/  - [F,L]
+    RewriteRule ^vendor/   - [F,L]
+    RewriteRule ^deploy/   - [F,L]
+    RewriteRule ^logs/     - [F,L]
+    RewriteRule \.(sql|md|log|json|lock)$ - [F,L]
+
+    # /admin and /admin/* → served directly from admin/ (real directory)
+    RewriteRule ^admin(/|$) - [L]
+
+    # /public or /public/* → already a real path, pass through as-is
+    RewriteRule ^public(/|$) - [L]
+
+    # Everything else that doesn't exist at the project root → forward into public/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 
 # Security headers

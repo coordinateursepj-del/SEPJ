@@ -188,7 +188,7 @@ function isMenuItemActive(array $item): bool
     
     <!-- Bottom section -->
     <div class="p-3 border-t border-white/10">
-        <a href="<?= e(APP_BASE_PATH) ?>/public/" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/50 hover:text-emerald-300 hover:bg-white/5 transition-all">
+        <a href="<?= e(BASE_URL) ?>/" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/50 hover:text-emerald-300 hover:bg-white/5 transition-all">
             <span>🌐</span>
             <span>
                 <?php if ($lang === 'ar'): ?>عرض الموقع
