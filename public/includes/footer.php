@@ -12,7 +12,7 @@ $lang = current_lang();
             <div>
                 <div class="flex justify-center mb-5">
                     <a href="index.php" aria-label="<?= e(APP_NAME) ?>">
-                        <img src="assets/logo-sepj.png" alt="SEPJ Gabès" class="h-14 w-auto opacity-90" loading="lazy">
+                        <img src="assets/logo-sepj.png" alt="SEPJ Gabès" class="h-28 w-auto opacity-90" loading="lazy">
                     </a>
                 </div>
                 <h3 class="font-bold text-white mb-3"><?= e(get_setting('company_name', $lang) ?: __('company_name', $lang)) ?></h3>
