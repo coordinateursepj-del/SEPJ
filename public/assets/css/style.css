@@ -775,6 +775,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    direction: ltr;
 }
 
 .lightbox-prev { left: 1.5rem; }
