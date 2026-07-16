@@ -1659,6 +1659,13 @@ main, section, article { overflow-x: hidden; }
     direction: ltr;
 }
 
+/* RTL: move floating stack to the right side for Arabic */
+[dir="rtl"] .float-stack {
+    left: auto;
+    right: 1.25rem;
+    align-items: flex-end;
+}
+
 /* Contact button — collapsed icon pill that expands to reveal its label */
 .float-contact {
     display: inline-flex;
