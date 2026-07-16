@@ -402,6 +402,7 @@ body {
     box-shadow: 0 1px 2px rgba(0,0,0,0.18), 0 8px 20px -8px rgba(194,112,61,0.55);
 }
 .glass-btn-accent:hover {
+    background: var(--accent-clay);
     filter: brightness(1.06);
     color: #fff;
     transform: translateY(-2px);
