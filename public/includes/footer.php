@@ -15,7 +15,7 @@ $lang = current_lang();
                         <img src="assets/logo-sepj.png" alt="SEPJ Gabès" class="h-28 w-auto opacity-90" loading="lazy">
                     </a>
                 </div>
-                <h3 class="font-bold text-white mb-3"><?= e(get_setting('company_name', $lang) ?: __('company_name', $lang)) ?></h3>
+                <h3 class="font-bold text-white mb-3 text-center"><?= e(get_setting('company_name', $lang) ?: __('company_name', $lang)) ?></h3>
                 <p class="text-sm text-emerald-200/70 leading-relaxed"><?= e(get_setting('about_summary', $lang)) ?></p>
             </div>
             <div>
