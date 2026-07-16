@@ -247,61 +247,123 @@ function toggleSelectAll(source) {
 
 /**
  * Multi-image gallery picker for content create/edit.
- * - Previews selected files
- * - Enforces a maximum number of images (data-max on the input)
- * - Lets the user mark one image as the cover (radio, value = file index)
+ *
+ * Images are uploaded ONE AT A TIME via AJAX to ajax_upload.php (kept small so we
+ * never hit OVH's FastCGI request-length limit with one huge multipart POST). Each
+ * successful upload returns a media id; we store it in a hidden field and offer a
+ * "cover" radio. The cover is posted as `cover_media_id`; ids as `uploaded_media_ids[]`.
  */
 function initGalleryPicker() {
     const input = document.getElementById('galleryInput');
     if (!input) return;
 
     const max     = parseInt(input.dataset.max) || 20;
-    const preview = document.getElementById('galleryPreview');
-    const counter = document.getElementById('galleryCount');
-    if (!preview) return;
-
-    // When the page already has existing images with cover radios (name="cover_source"
-    // value="existing:ID"), the newly-picked files use value="new:INDEX" so the server
-    // can tell them apart.
-    const coverName  = input.dataset.coverName  || 'cover_source';
-    const coverPrefix = input.dataset.coverPrefix || 'new:';
+    const mode     = input.dataset.mode || 'create';          // create | edit
+    const contentId = parseInt(input.dataset.contentId) || 0;
+    const preview  = document.getElementById('galleryPreview');
+    const counter  = document.getElementById('galleryCount');
+    const fields   = document.getElementById('galleryFields');
+    if (!preview || !fields) return;
 
     const coverLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.cover)
         ? SEPJ_LABELS.cover
         : 'Couverture';
+    const uploadingLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.uploading)
+        ? SEPJ_LABELS.uploading
+        : 'Uploading…';
+    const errorLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.uploadError)
+        ? SEPJ_LABELS.uploadError
+        : 'Upload failed';
 
-    function render(files) {
-        preview.innerHTML = '';
-        const list = Array.from(files).slice(0, max);
-        list.forEach((file, idx) => {
-            const url = URL.createObjectURL(file);
-            const cell = document.createElement('div');
-            cell.className = 'relative glass-card overflow-hidden group';
-            cell.innerHTML =
-                '<div class="aspect-square overflow-hidden">' +
-                    '<img src="' + url + '" alt="" class="w-full h-full object-cover">' +
-                '</div>' +
-                '<label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">' +
-                    '<input type="radio" name="' + coverName + '" value="' + coverPrefix + idx + '"' + (idx === 0 ? ' checked' : '') + '>' +
-                    coverLabel +
-                '</label>';
-            preview.appendChild(cell);
-        });
+    // How many images already present (existing gallery + already-uploaded)?
+    function currentCount() {
+        const existing = document.querySelectorAll('#existingGallery [data-media-id]').length;
+        const uploaded = fields.querySelectorAll('input[name="uploaded_media_ids[]"]').length;
+        return existing + uploaded;
+    }
+
+    function addHiddenId(id) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'uploaded_media_ids[]';
+        hidden.value = id;
+        fields.appendChild(hidden);
+    }
+
+    function makeCell() {
+        const cell = document.createElement('div');
+        cell.className = 'relative glass-card overflow-hidden group';
+        return cell;
+    }
+
+    function appendUploaded(cell, mediaId, url, autoCover) {
+        cell.innerHTML =
+            '<div class="aspect-square overflow-hidden">' +
+                '<img src="' + url + '" alt="" class="w-full h-full object-cover">' +
+            '</div>' +
+            '<label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">' +
+                '<input type="radio" name="cover_media_id" value="' + mediaId + '"' + (autoCover ? ' checked' : '') + '>' +
+                coverLabel +
+            '</label>';
+        addHiddenId(mediaId);
+        if (autoCover && !document.querySelector('input[name="cover_media_id"]:checked')) {
+            const radio = cell.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        }
+        updateCounter();
+    }
+
+    function updateCounter() {
         if (counter) {
-            counter.textContent = list.length + ' / ' + max;
+            counter.textContent = currentCount() + ' / ' + max;
+        }
+    }
+
+    async function uploadOne(file, cell) {
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('content_id', contentId);
+        fd.append('subdir', 'content');
+        fd.append('csrf_token', (typeof SEPJ_CSRF !== 'undefined' ? SEPJ_CSRF : ''));
+
+        try {
+            const resp = await fetch('ajax_upload.php', {
+                method: 'POST',
+                body: fd,
+                headers: (typeof SEPJ_CSRF !== 'undefined') ? { 'X-CSRF-Token': SEPJ_CSRF } : {}
+            });
+            const data = await resp.json();
+            if (data.success) {
+                appendUploaded(cell, data.id, data.url, currentCount() === 1);
+            } else {
+                cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br>' + (data.message || '') + '</div>';
+            }
+        } catch (e) {
+            cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '</div>';
         }
     }
 
     input.addEventListener('change', function() {
         const files = Array.from(this.files || []);
-        if (files.length > max) {
-            // Keep only the first `max` on the input itself.
-            const dt = new DataTransfer();
-            files.slice(0, max).forEach(f => dt.items.add(f));
-            this.files = dt.files;
+        this.value = ''; // reset so the same file can be re-picked
+
+        let room = max - currentCount();
+        if (room <= 0) {
+            alert((typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.maxReached) ? SEPJ_LABELS.maxReached : ('Max ' + max + ' images.'));
+            return;
         }
-        render(this.files);
+
+        const toUpload = files.slice(0, room);
+        toUpload.forEach(file => {
+            const cell = makeCell();
+            cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-emerald-300">' + uploadingLabel + '</div>';
+            preview.appendChild(cell);
+            uploadOne(file, cell);
+        });
+        updateCounter();
     });
+
+    updateCounter();
 }
 
 /**

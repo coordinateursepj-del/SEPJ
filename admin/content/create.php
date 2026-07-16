@@ -95,66 +95,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Handle gallery image uploads (up to MAX_GALLERY_IMAGES) and cover selection.
-    // Use !== UPLOAD_ERR_NO_FILE so a provided-but-rejected file surfaces a clear error.
-    $coverPath = '';
-    if (isset($_FILES['gallery_images']) && !empty($_FILES['gallery_images']['name'][0])) {
-        $existingCount = 0;
-        $uploaded = upload_multiple_files($_FILES['gallery_images'], 'content');
-        $accepted = [];
-        foreach ($uploaded as $result) {
-            if ($result['success']) {
-                $accepted[] = $result['path'];
-            } else {
-                // Only report a real error if a file was actually attempted
-                if (!empty($result['message'])) {
-                    $errors[] = $result['message'];
-                }
-            }
+    // Gallery images are uploaded individually via AJAX (see ajax_upload.php) so we
+    // never send one huge multipart POST (OVH FastCGI request-length limit). Each
+    // uploaded image already has a media row with content_item_id = 0 (temp). On save
+    // we re-attach those rows to the new item, enforce the cap, and set the cover.
+    $uploadedIds = [];
+    if (!empty($_POST['uploaded_media_ids']) && is_array($_POST['uploaded_media_ids'])) {
+        foreach ($_POST['uploaded_media_ids'] as $mid) {
+            $uploadedIds[] = (int) $mid;
         }
+    }
 
-        if (count($accepted) > MAX_GALLERY_IMAGES) {
-            $errors[] = $lang === 'ar'
-                ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى.'
-                : ($lang === 'fr'
-                    ? 'Vous pouvez télécharger un maximum de ' . MAX_GALLERY_IMAGES . ' images.'
-                    : 'You can upload a maximum of ' . MAX_GALLERY_IMAGES . ' images.');
-            // Drop the excess (keep first MAX_GALLERY_IMAGES)
-            $extra = array_slice($accepted, MAX_GALLERY_IMAGES);
-            foreach ($extra as $ex) {
-                delete_uploaded_file($ex);
-            }
-            $accepted = array_slice($accepted, 0, MAX_GALLERY_IMAGES);
+    if (count($uploadedIds) > MAX_GALLERY_IMAGES) {
+        $errors[] = $lang === 'ar'
+            ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى.'
+            : ($lang === 'fr'
+                ? 'Vous pouvez télécharger un maximum de ' . MAX_GALLERY_IMAGES . ' images.'
+                : 'You can upload a maximum of ' . MAX_GALLERY_IMAGES . ' images.');
+        // Drop the excess media rows.
+        $dropStmt = db()->prepare("DELETE FROM media WHERE id = :id AND content_item_id = 0");
+        foreach (array_slice($uploadedIds, MAX_GALLERY_IMAGES) as $dropId) {
+            $dropStmt->execute(['id' => $dropId]);
         }
+        $uploadedIds = array_slice($uploadedIds, 0, MAX_GALLERY_IMAGES);
+    }
 
-        if (empty($errors)) {
-            // Persist gallery rows so we can read them back for cover selection.
-            foreach ($accepted as $path) {
-                $sortStmt = db()->prepare("SELECT MAX(sort_order) FROM media WHERE content_item_id = :id");
-                $sortStmt->execute(['id' => 0]); // temp id, replaced after insert
-                $maxSort = (int) $sortStmt->fetchColumn();
-                $stmt = db()->prepare("
-                    INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at)
-                    VALUES (:content_item_id, :file_path, :file_name, :file_type, :sort_order, NOW())
-                ");
-                $stmt->execute([
-                    'content_item_id' => 0,
-                    'file_path'       => $path,
-                    'file_name'       => basename($path),
-                    'file_type'       => 'image',
-                    'sort_order'      => $maxSort + 1,
-                ]);
-            }
-
-            // Determine cover: explicit choice (by index, since server paths are
-            // generated on upload), else first uploaded image.
-            $coverIndex = isset($_POST['cover_index']) ? (int) $_POST['cover_index'] : -1;
-            if ($coverIndex >= 0 && isset($accepted[$coverIndex])) {
-                $coverPath = $accepted[$coverIndex];
-            } elseif (!empty($accepted)) {
-                $coverPath = $accepted[0];
-            }
-            $item['featured_image'] = $coverPath;
+    // Determine cover from the chosen media id (AJAX-uploaded or selected).
+    $coverMediaId = isset($_POST['cover_media_id']) ? (int) $_POST['cover_media_id'] : 0;
+    if ($coverMediaId > 0 && in_array($coverMediaId, $uploadedIds, true)) {
+        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = 0");
+        $cStmt->execute(['id' => $coverMediaId]);
+        $cp = $cStmt->fetchColumn();
+        if ($cp) {
+            $item['featured_image'] = $cp;
         }
     }
     
@@ -194,8 +167,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newId = db()->lastInsertId();
 
             // Attach any gallery images uploaded above (stored temporarily with content_item_id = 0)
-            // to this new content item, and refresh the cover if the chosen one was among them.
-            $attachStmt = db()->prepare("UPDATE media SET content_item_id = :cid WHERE content_item_id = 0 AND file_path = :fp");
+            // Attach the temp media rows (content_item_id = 0) uploaded via AJAX to
+            // this new content item, and set the cover if it wasn't already chosen.
+            $attachStmt = db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id = 0");
+            foreach ($uploadedIds as $mid) {
+                $attachStmt->execute(['cid' => $newId, 'mid' => $mid]);
+            }
+
             $coverStmt = db()->prepare("SELECT file_path FROM media WHERE content_item_id = :cid ORDER BY sort_order ASC, id ASC LIMIT 1");
             $coverStmt->execute(['cid' => $newId]);
             $firstPath = $coverStmt->fetchColumn();
@@ -203,9 +181,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $item['featured_image'] = $firstPath;
                 $updCov = db()->prepare("UPDATE content_items SET featured_image = :fi WHERE id = :id");
                 $updCov->execute(['fi' => $firstPath, 'id' => $newId]);
-            }
-            foreach (($accepted ?? []) as $path) {
-                $attachStmt->execute(['cid' => $newId, 'fp' => $path]);
             }
 
             log_audit($_SESSION['user_id'], 'create', $type, (int)$newId);
@@ -353,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     
-                    <!-- Gallery Images + Cover -->
+                    <!-- Gallery Images + Cover (uploaded individually via AJAX) -->
                     <div class="glass-card-static p-4">
                         <label class="block text-sm font-medium text-emerald-200 mb-2">
                             <?php if ($lang === 'ar'): ?>صور المقال (حتى <?= MAX_GALLERY_IMAGES ?> صورة)
@@ -361,18 +336,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php else: ?>Article Images (up to <?= MAX_GALLERY_IMAGES ?>)
                             <?php endif; ?>
                         </label>
-                        <input type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp" id="galleryInput"
-                               data-max="<?= MAX_GALLERY_IMAGES ?>"
-                               data-cover-name="cover_index" data-cover-prefix=""
+                        <input type="file" id="galleryInput" multiple accept="image/jpeg,image/png,image/webp"
+                               data-max="<?= MAX_GALLERY_IMAGES ?>" data-content-id="0" data-mode="create"
                                class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
                         <p class="text-xs text-emerald-300/40 mt-1">
-                            <?php if ($lang === 'ar'): ?>اختر صورة أو أكثر. الصورة المحددة كـ "غلاف" تظهر في القوائم.
-                            <?php elseif ($lang === 'fr'): ?>Choisissez une ou plusieurs images. Celle marquée « couverture » apparaît dans les listes.
-                            <?php else: ?>Select one or more images. The one marked "cover" is shown in listings.
+                            <?php if ($lang === 'ar'): ?>تُرفع كل صورة على حدة. الصورة المحددة كـ "غلاف" تظهر في القوائم.
+                            <?php elseif ($lang === 'fr'): ?>Chaque image est envoyée séparément. Celle marquée « couverture » apparaît dans les listes.
+                            <?php else: ?>Each image is uploaded separately. The one marked "cover" is shown in listings.
                             <?php endif; ?>
                         </p>
                         <div id="galleryPreview" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-3"></div>
                         <p id="galleryCount" class="text-xs text-emerald-400 mt-2"></p>
+                        <!-- Holds AJAX-uploaded media ids + cover, posted on save -->
+                        <div id="galleryFields"></div>
                     </div>
                     
                     <!-- Video URL (only for Video type) -->
@@ -496,6 +472,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     
+    <script>window.SEPJ_CSRF = <?= json_encode(csrf_token()) ?>;</script>
     <script src="../../public/assets/js/admin.js"></script>
 </body>
 </html>

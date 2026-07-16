@@ -96,76 +96,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Handle new gallery image uploads (up to MAX_GALLERY_IMAGES total).
-    // Use !== UPLOAD_ERR_NO_FILE so a provided-but-rejected file surfaces a clear error.
-    $newPaths = [];
-    if (isset($_FILES['gallery_images']) && !empty($_FILES['gallery_images']['name'][0])) {
-        $currentCount = (int) db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id")
-            ->execute(['id' => $id])->fetchColumn();
-
-        $uploaded = upload_multiple_files($_FILES['gallery_images'], 'content');
-        foreach ($uploaded as $result) {
-            if ($result['success']) {
-                $newPaths[] = $result['path'];
-            } elseif (!empty($result['message'])) {
-                $errors[] = $result['message'];
-            }
+    // Gallery images are uploaded individually via AJAX (ajax_upload.php) so we never
+    // send one huge multipart POST (OVH FastCGI request-length limit). Newly uploaded
+    // images arrive as media ids in uploaded_media_ids[]; existing ones keep their rows.
+    $uploadedIds = [];
+    if (!empty($_POST['uploaded_media_ids']) && is_array($_POST['uploaded_media_ids'])) {
+        foreach ($_POST['uploaded_media_ids'] as $mid) {
+            $uploadedIds[] = (int) $mid;
         }
+    }
 
-        if (($currentCount + count($newPaths)) > MAX_GALLERY_IMAGES) {
-            $errors[] = $lang === 'ar'
-                ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى (لديك حالياً ' . $currentCount . ').'
-                : ($lang === 'fr'
-                    ? 'Maximum ' . MAX_GALLERY_IMAGES . ' images (vous en avez déjà ' . $currentCount . ').'
-                    : 'Maximum ' . MAX_GALLERY_IMAGES . ' images (you already have ' . $currentCount . ').');
-            foreach ($newPaths as $ex) {
-                delete_uploaded_file($ex);
-            }
-            $newPaths = [];
+    $totalCount = (int) db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id")
+        ->execute(['id' => $id])->fetchColumn();
+    if (($totalCount + count($uploadedIds)) > MAX_GALLERY_IMAGES) {
+        $errors[] = $lang === 'ar'
+            ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى (لديك حالياً ' . $totalCount . ').'
+            : ($lang === 'fr'
+                ? 'Maximum ' . MAX_GALLERY_IMAGES . ' images (vous en avez déjà ' . $totalCount . ').'
+                : 'Maximum ' . MAX_GALLERY_IMAGES . ' images (you already have ' . $totalCount . ').');
+        // Drop the just-uploaded overflow rows.
+        $dropStmt = db()->prepare("DELETE FROM media WHERE id = :id AND content_item_id = :cid");
+        foreach (array_slice($uploadedIds, MAX_GALLERY_IMAGES - $totalCount) as $dropId) {
+            $dropStmt->execute(['id' => $dropId, 'cid' => $id]);
         }
+        $uploadedIds = array_slice($uploadedIds, 0, MAX_GALLERY_IMAGES - $totalCount);
+    }
 
-        if (empty($errors) && !empty($newPaths)) {
-            foreach ($newPaths as $path) {
-                $sortStmt = db()->prepare("SELECT MAX(sort_order) FROM media WHERE content_item_id = :id");
-                $sortStmt->execute(['id' => $id]);
-                $maxSort = (int) $sortStmt->fetchColumn();
-                $stmt = db()->prepare("
-                    INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at)
-                    VALUES (:content_item_id, :file_path, :file_name, :file_type, :sort_order, NOW())
-                ");
-                $stmt->execute([
-                    'content_item_id' => $id,
-                    'file_path'       => $path,
-                    'file_name'       => basename($path),
-                    'file_type'       => 'image',
-                    'sort_order'      => $maxSort + 1,
-                ]);
-            }
+    if (empty($errors) && !empty($uploadedIds)) {
+        foreach ($uploadedIds as $mid) {
+            db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id = 0")
+                ->execute(['cid' => $id, 'mid' => $mid]);
         }
     }
 
     // Determine cover.
-    // cover_source: 'existing:<media_id>' or 'new:<index>' or 'none'.
-    $coverSource = $_POST['cover_source'] ?? '';
-    if ($coverSource !== '') {
-        if (strpos($coverSource, 'existing:') === 0) {
-            $coverId = (int) substr($coverSource, strlen('existing:'));
-            $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = :cid");
-            $cStmt->execute(['id' => $coverId, 'cid' => $id]);
-            $cp = $cStmt->fetchColumn();
-            if ($cp) {
-                $item['featured_image'] = $cp;
-            }
-        } elseif (strpos($coverSource, 'new:') === 0) {
-            $idx = (int) substr($coverSource, strlen('new:'));
-            if (isset($newPaths[$idx])) {
-                $item['featured_image'] = $newPaths[$idx];
-            }
-        } elseif ($coverSource === 'none') {
-            $item['featured_image'] = '';
+    // cover_media_id: an existing media id, a newly uploaded id, or 0 for none.
+    $coverMediaId = isset($_POST['cover_media_id']) ? (int) $_POST['cover_media_id'] : 0;
+    if ($coverMediaId > 0) {
+        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND (content_item_id = :cid OR content_item_id = 0)");
+        $cStmt->execute(['id' => $coverMediaId, 'cid' => $id]);
+        $cp = $cStmt->fetchColumn();
+        if ($cp) {
+            $item['featured_image'] = $cp;
         }
     }
-
     // Remove featured image entirely (legacy single-image remove)
     if (isset($_POST['remove_image']) && $_POST['remove_image'] === '1') {
         if (!empty($item['featured_image'])) {
@@ -340,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </label>
 
                         <?php
-                        // Merge existing + newly uploaded (preview only) into one cover-selector grid.
+                        // Existing gallery with a cover radio per image.
                         $coverCheckedId = null;
                         if (!empty($item['featured_image'])) {
                             foreach ($existingMedia as $m) {
@@ -349,16 +323,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                         ?>
                         <?php if (!empty($existingMedia)): ?>
-                        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
+                        <div id="existingGallery" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
                             <?php foreach ($existingMedia as $m): ?>
-                            <div class="relative glass-card overflow-hidden group">
+                            <div class="relative glass-card overflow-hidden group" data-media-id="<?= $m['id'] ?>">
                                 <div class="aspect-square overflow-hidden">
                                     <img src="<?= e(upload_url($m['file_path'])) ?>" alt="" class="w-full h-full object-cover">
                                 </div>
                                 <label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">
-                                    <input type="radio" name="cover_source" value="existing:<?= $m['id'] ?>" <?= $m['id'] === $coverCheckedId ? 'checked' : '' ?>>
+                                    <input type="radio" name="cover_media_id" value="<?= $m['id'] ?>" <?= $m['id'] === $coverCheckedId ? 'checked' : '' ?>>
                                     <?= $lang === 'ar' ? 'غلاف' : ($lang === 'fr' ? 'Couverture' : 'Cover') ?>
                                 </label>
+                                <a href="../media/delete.php?id=<?= $m['id'] ?>&return=content&content_id=<?= $id ?>&csrf_token=<?= csrf_token() ?>"
+                                   class="absolute top-1 right-1 text-xs text-red-400 hover:text-red-300 bg-black/40 rounded p-1"
+                                   onclick="return confirm('<?= $lang === 'ar' ? 'حذف هذه الصورة؟' : ($lang === 'fr' ? 'Supprimer cette image ?' : 'Delete this image?') ?>')">🗑️</a>
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -369,15 +346,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="block text-sm font-medium text-emerald-200 mb-1 mt-2">
                             <?= $lang === 'ar' ? 'إضافة صور جديدة' : ($lang === 'fr' ? 'Ajouter de nouvelles images' : 'Add new images') ?>
                         </label>
-                        <input type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp" id="galleryInput"
-                               data-max="<?= MAX_GALLERY_IMAGES ?>"
-                               data-cover-name="cover_source" data-cover-prefix="new:"
+                        <input type="file" id="galleryInput" multiple accept="image/jpeg,image/png,image/webp"
+                               data-max="<?= MAX_GALLERY_IMAGES ?>" data-content-id="<?= $id ?>" data-mode="edit"
                                class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
                         <div id="galleryPreview" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-3"></div>
                         <p id="galleryCount" class="text-xs text-emerald-400 mt-2"></p>
                         <p class="text-xs text-emerald-300/40 mt-1">
-                            <?= $lang === 'ar' ? 'الصورة المحددة كـ "غلاف" تظهر في القوائم. يمكنك أيضاً إدارة الصور من زر "إدارة الصور".' : ($lang === 'fr' ? 'L\'image marquée « couverture » apparaît dans les listes. Gérez les images via « Gérer les images ».' : 'The image marked "cover" is shown in listings. Manage images via "Manage images".') ?>
+                            <?= $lang === 'ar' ? 'تُرفع كل صورة على حدة. الصورة المحددة كـ "غلاف" تظهر في القوائم. يمكنك أيضاً إدارة الصور من زر "إدارة الصور".' : ($lang === 'fr' ? 'Chaque image est envoyée séparément. Celle marquée « couverture » apparaît dans les listes. Gérez les images via « Gérer les images ».' : 'Each image is uploaded separately. The one marked "cover" is shown in listings. Manage images via "Manage images".') ?>
                         </p>
+                        <!-- Holds AJAX-uploaded media ids; cover is posted as cover_media_id -->
+                        <div id="galleryFields"></div>
                     </div>
                     
                     <!-- Video URL (only for Video type) -->
@@ -457,6 +435,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     
+    <script>window.SEPJ_CSRF = <?= json_encode(csrf_token()) ?>;</script>
     <script src="../../public/assets/js/admin.js"></script>
 </body>
 </html>
