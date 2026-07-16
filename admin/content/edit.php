@@ -109,8 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $totalCount = (int) db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id")
-        ->execute(['id' => $id])->fetchColumn();
+    try {
+        $cntStmt = db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id");
+        $cntStmt->execute(['id' => $id]);
+        $totalCount = (int) ($cntStmt->fetchColumn() ?: 0);
+    } catch (PDOException $e) {
+        error_log("Edit content media count error: " . $e->getMessage());
+        $totalCount = 0;
+    }
     if (($totalCount + count($uploadedPaths)) > MAX_GALLERY_IMAGES) {
         $errors[] = $lang === 'ar'
             ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى (لديك حالياً ' . $totalCount . ').'
@@ -128,11 +134,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($coverPostedPath !== '' && in_array($coverPostedPath, $uploadedPaths, true)) {
         $coverPath = $coverPostedPath;
     } elseif ($coverMediaId > 0) {
-        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = :cid");
-        $cStmt->execute(['id' => $coverMediaId, 'cid' => $id]);
-        $cp = $cStmt->fetchColumn();
-        if ($cp) {
-            $coverPath = $cp;
+        try {
+            $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = :cid");
+            $cStmt->execute(['id' => $coverMediaId, 'cid' => $id]);
+            $cp = $cStmt->fetchColumn();
+            if ($cp) {
+                $coverPath = $cp;
+            }
+        } catch (PDOException $e) {
+            error_log("Edit content cover lookup error: " . $e->getMessage());
         }
     }
     if ($coverPath === '' && !empty($item['featured_image'])) {
