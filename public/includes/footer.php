@@ -19,27 +19,26 @@ $lang = current_lang();
                 <p class="text-sm text-emerald-200/70 leading-relaxed text-center"><?= e(get_setting('about_summary', $lang)) ?></p>
             </div>
             <div class="bg-white/5 rounded-2xl p-6">
-                <h3 class="font-bold text-white mb-3"><?= __('quick_links', $lang) ?></h3>
-                <div class="space-y-2 mb-4">
-                    <a href="projects.php" class="footer-link text-sm"><?= __('nav_projects', $lang) ?></a>
-                    <a href="services.php" class="footer-link text-sm"><?= __('nav_services', $lang) ?></a>
-                    <a href="news.php" class="footer-link text-sm"><?= __('nav_news', $lang) ?></a>
-                    <a href="contact.php" class="footer-link text-sm"><?= __('nav_contact', $lang) ?></a>
-                </div>
-                <div class="border-t border-white/10 pt-4 mb-4">
-                    <h3 class="font-bold text-white mb-3"><?= __('contact_us', $lang) ?></h3>
-                    <div class="space-y-3 text-sm text-emerald-200/70">
-                        <p class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('address', $lang)) ?></p>
-                        <p class="flex items-center gap-2"><i class="fa-solid fa-phone text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('phone', $lang)) ?></p>
-                        <p class="flex items-center gap-2"><i class="fa-solid fa-envelope text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('email_primary', $lang)) ?></p>
-                        <p class="flex items-center gap-2"><i class="fa-solid fa-box text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('po_box', $lang)) ?></p>
+                <div class="flex flex-col sm:flex-row gap-6">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-white mb-3"><?= __('quick_links', $lang) ?></h3>
+                        <div class="space-y-2">
+                            <a href="projects.php" class="footer-link text-sm"><?= __('nav_projects', $lang) ?></a>
+                            <a href="services.php" class="footer-link text-sm"><?= __('nav_services', $lang) ?></a>
+                            <a href="news.php" class="footer-link text-sm"><?= __('nav_news', $lang) ?></a>
+                            <a href="contact.php" class="footer-link text-sm"><?= __('nav_contact', $lang) ?></a>
+                        </div>
                     </div>
-                </div>
-                <div class="border-t border-white/10 pt-4">
-                    <a href="contact.php" class="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-sm font-semibold transition-colors">
-                        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-                        <?= __('send_message', $lang) ?>
-                    </a>
+                    <div class="border-t sm:border-t-0 sm:border-l border-white/10 sm:pt-0 pt-4"></div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-white mb-3"><?= __('contact_us', $lang) ?></h3>
+                        <div class="space-y-3 text-sm text-emerald-200/70">
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('address', $lang)) ?></p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-phone text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('phone', $lang)) ?></p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-envelope text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('email_primary', $lang)) ?></p>
+                            <p class="flex items-center gap-2"><i class="fa-solid fa-box text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('po_box', $lang)) ?></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
