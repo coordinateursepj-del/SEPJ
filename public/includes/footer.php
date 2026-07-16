@@ -48,7 +48,7 @@ $lang = current_lang();
                 <a href="https://www.linkedin.com/in/sepjgabes/" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors" aria-label="LinkedIn">
                     <i class="fab fa-linkedin-in" aria-hidden="true"></i>
                 </a>
-                <a href="https://www.facebook.com/SEPJGabes/" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors" aria-label="Facebook">
+                <a href="https://www.facebook.com/SEPJGabes.tn" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors" aria-label="Facebook">
                     <i class="fab fa-facebook-f" aria-hidden="true"></i>
                 </a>
                 <a href="https://www.instagram.com/sepjgabes" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors" aria-label="Instagram">
@@ -96,7 +96,7 @@ $contactAriaLabel = $lang === 'ar' ? 'تواصل معنا' : ($lang === 'fr' ? '
         <i class="fab fa-linkedin-in" aria-hidden="true"></i>
         <span class="social-float-label">LinkedIn</span>
     </a>
-    <a href="https://www.facebook.com/SEPJGabes/"
+    <a href="https://www.facebook.com/SEPJGabes.tn"
        target="_blank" rel="noopener noreferrer"
        class="social-float-btn social-float-facebook"
        aria-label="Facebook — SEPJ Gabès">

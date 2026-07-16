@@ -42,7 +42,7 @@ INSERT INTO `site_settings` (`setting_key`, `value_ar`, `value_fr`, `value_en`, 
 ('address', 'المنطقة الصناعية بڨابس', 'Zone Industrielle de Gabès', 'Industrial Zone of Gabès', NULL),
 
 -- Social Media
-('facebook_url', NULL, NULL, NULL, 'https://www.facebook.com/SEPJGabes/'),
+('facebook_url', NULL, NULL, NULL, 'https://www.facebook.com/SEPJGabes.tn'),
 
 -- Homepage Hero
 ('hero_title', 'شركة البيئة والغراسة والبستنة بقابس', 'Société d\'Environnement, Plantation et Jardinage de Gabès', 'Environment, Plantation and Gardening Company of Gabès', NULL),
