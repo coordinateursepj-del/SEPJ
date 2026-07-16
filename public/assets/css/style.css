@@ -1135,16 +1135,26 @@ select.form-input option,
     color: var(--text-secondary);
     transition: var(--transition-smooth);
     display: block;
-    padding: 0.25rem 0;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.375rem;
+    border-left: 2px solid transparent;
 }
 
 .footer-link:hover {
     color: var(--emerald-400);
     transform: translateX(4px);
+    background: rgba(255,255,255,0.04);
+    border-left-color: var(--emerald-400);
+}
+
+[dir="rtl"] .footer-link {
+    border-left: none;
+    border-right: 2px solid transparent;
 }
 
 [dir="rtl"] .footer-link:hover {
     transform: translateX(-4px);
+    border-right-color: var(--emerald-400);
 }
 
 /* ---------- Responsive ---------- */

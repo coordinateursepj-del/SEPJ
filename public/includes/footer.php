@@ -8,7 +8,7 @@ $lang = current_lang();
 <!-- Footer -->
 <footer class="site-footer">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-center">
             <div>
                 <div class="flex justify-center mb-5">
                     <a href="index.php" aria-label="<?= e(APP_NAME) ?>">
