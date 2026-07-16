@@ -54,6 +54,9 @@ $lang = current_lang();
                 <a href="https://www.instagram.com/sepjgabes" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors" aria-label="Instagram">
                     <i class="fab fa-instagram" aria-hidden="true"></i>
                 </a>
+                <a href="https://www.youtube.com/@SEPJGabes" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors" aria-label="YouTube">
+                    <i class="fab fa-youtube" aria-hidden="true"></i>
+                </a>
             </div>
         </div>
     </div>
@@ -109,6 +112,13 @@ $contactAriaLabel = $lang === 'ar' ? 'تواصل معنا' : ($lang === 'fr' ? '
        aria-label="Instagram — SEPJ Gabès">
         <i class="fab fa-instagram" aria-hidden="true"></i>
         <span class="social-float-label">Instagram</span>
+    </a>
+    <a href="https://www.youtube.com/@SEPJGabes"
+       target="_blank" rel="noopener noreferrer"
+       class="social-float-btn social-float-youtube"
+       aria-label="YouTube — SEPJ Gabès">
+        <i class="fab fa-youtube" aria-hidden="true"></i>
+        <span class="social-float-label">YouTube</span>
     </a>
 </div>
 </div><!-- /.float-stack -->

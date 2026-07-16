@@ -1784,6 +1784,11 @@ main, section, article { overflow-x: hidden; }
     box-shadow: 0 6px 20px rgba(228, 64, 95, 0.4);
     color: #E4405F;
 }
+.social-float-youtube:hover {
+    border-color: #FF0000;
+    box-shadow: 0 6px 20px rgba(255, 0, 0, 0.45);
+    color: #FF0000;
+}
 
 [data-theme="light"] .social-float-btn { color: #064e3b; }
 
