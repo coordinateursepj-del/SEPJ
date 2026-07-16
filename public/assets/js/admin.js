@@ -330,16 +330,24 @@ function initGalleryPicker() {
             const resp = await fetch('ajax_upload.php', {
                 method: 'POST',
                 body: fd,
-                headers: (typeof SEPJ_CSRF !== 'undefined') ? { 'X-CSRF-Token': SEPJ_CSRF } : {}
+                credentials: 'same-origin'
             });
-            const data = await resp.json();
-            if (data.success) {
+            let data = null;
+            const text = await resp.text();
+            try {
+                data = JSON.parse(text);
+            } catch (parseErr) {
+                // Server returned non-JSON (PHP error / 500 page). Surface it.
+                cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br><span class="break-all">' + (text || ('HTTP ' + resp.status)).slice(0, 200) + '</span></div>';
+                return;
+            }
+            if (data && data.success) {
                 appendUploaded(cell, data.id, data.url, currentCount() === 1);
             } else {
-                cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br>' + (data.message || '') + '</div>';
+                cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br>' + ((data && data.message) || '') + '</div>';
             }
         } catch (e) {
-            cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '</div>';
+            cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br><span class="break-all">' + (e && e.message ? e.message : '') + '</span></div>';
         }
     }
 
