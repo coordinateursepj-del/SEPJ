@@ -174,9 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Create media rows for each uploaded image, now that we have a valid
             // content_item_id. We only insert — no FK risk because the id is real.
-            $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, media_type, sort_order, created_at) VALUES (:cid, :path, 'image', :so, NOW())");
+            $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at) VALUES (:cid, :path, :name, 'image', :so, NOW())");
             foreach ($uploadedPaths as $idx => $p) {
-                $insMedia->execute(['cid' => $newId, 'path' => $p, 'so' => $idx]);
+                $name = basename($p);
+                $insMedia->execute(['cid' => $newId, 'path' => $p, 'name' => $name, 'so' => $idx]);
             }
 
             if (empty($item['featured_image']) && !empty($uploadedPaths)) {

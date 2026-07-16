@@ -192,9 +192,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             // Create media rows for each newly uploaded image, with a real content id.
-            $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, media_type, sort_order, created_at) VALUES (:cid, :path, 'image', :so, NOW())");
+            $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at) VALUES (:cid, :path, :name, 'image', :so, NOW())");
             foreach ($uploadedPaths as $idx => $p) {
-                $insMedia->execute(['cid' => $id, 'path' => $p, 'so' => $totalCount + $idx]);
+                $name = basename($p);
+                $insMedia->execute(['cid' => $id, 'path' => $p, 'name' => $name, 'so' => $totalCount + $idx]);
             }
 
             log_audit($_SESSION['user_id'], 'update', $type, $id);
