@@ -1782,6 +1782,12 @@ main, section, article { overflow-x: hidden; }
     pointer-events: none;
 }
 
+[dir="rtl"] .social-float-label {
+    text-align: left;
+    padding-right: 0;
+    padding-left: 1.1rem;
+}
+
 .social-float-btn:hover {
     max-width: 220px;
     transform: translateX(4px);
