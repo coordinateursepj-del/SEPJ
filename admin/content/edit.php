@@ -42,6 +42,11 @@ try {
 
 $type = $item['type'];
 $pageTitle = get_content_page_title($type, $lang, 'edit');
+
+// Fetch attached gallery media for this item
+$mediaStmt = db()->prepare("SELECT * FROM media WHERE content_item_id = :id ORDER BY sort_order ASC, created_at ASC");
+$mediaStmt->execute(['id' => $id]);
+$existingMedia = $mediaStmt->fetchAll();
 $errors = [];
 $translation_warnings = [];
 $auto_translate = true;
@@ -91,23 +96,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Handle new featured image.
-    // Use !== UPLOAD_ERR_NO_FILE so a provided-but-rejected file (e.g. too large)
-    // surfaces a clear error instead of silently keeping the old/empty image.
-    if (isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $uploadResult = upload_file($_FILES['featured_image'], 'content');
-        if ($uploadResult['success']) {
-            // Delete old image if exists
-            if (!empty($item['featured_image'])) {
-                delete_uploaded_file($item['featured_image']);
+    // Handle new gallery image uploads (up to MAX_GALLERY_IMAGES total).
+    // Use !== UPLOAD_ERR_NO_FILE so a provided-but-rejected file surfaces a clear error.
+    $newPaths = [];
+    if (isset($_FILES['gallery_images']) && !empty($_FILES['gallery_images']['name'][0])) {
+        $currentCount = (int) db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id")
+            ->execute(['id' => $id])->fetchColumn();
+
+        $uploaded = upload_multiple_files($_FILES['gallery_images'], 'content');
+        foreach ($uploaded as $result) {
+            if ($result['success']) {
+                $newPaths[] = $result['path'];
+            } elseif (!empty($result['message'])) {
+                $errors[] = $result['message'];
             }
-            $item['featured_image'] = $uploadResult['path'];
-        } else {
-            $errors[] = $uploadResult['message'];
+        }
+
+        if (($currentCount + count($newPaths)) > MAX_GALLERY_IMAGES) {
+            $errors[] = $lang === 'ar'
+                ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى (لديك حالياً ' . $currentCount . ').'
+                : ($lang === 'fr'
+                    ? 'Maximum ' . MAX_GALLERY_IMAGES . ' images (vous en avez déjà ' . $currentCount . ').'
+                    : 'Maximum ' . MAX_GALLERY_IMAGES . ' images (you already have ' . $currentCount . ').');
+            foreach ($newPaths as $ex) {
+                delete_uploaded_file($ex);
+            }
+            $newPaths = [];
+        }
+
+        if (empty($errors) && !empty($newPaths)) {
+            foreach ($newPaths as $path) {
+                $sortStmt = db()->prepare("SELECT MAX(sort_order) FROM media WHERE content_item_id = :id");
+                $sortStmt->execute(['id' => $id]);
+                $maxSort = (int) $sortStmt->fetchColumn();
+                $stmt = db()->prepare("
+                    INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at)
+                    VALUES (:content_item_id, :file_path, :file_name, :file_type, :sort_order, NOW())
+                ");
+                $stmt->execute([
+                    'content_item_id' => $id,
+                    'file_path'       => $path,
+                    'file_name'       => basename($path),
+                    'file_type'       => 'image',
+                    'sort_order'      => $maxSort + 1,
+                ]);
+            }
         }
     }
-    
-    // Remove featured image
+
+    // Determine cover.
+    // cover_source: 'existing:<media_id>' or 'new:<index>' or 'none'.
+    $coverSource = $_POST['cover_source'] ?? '';
+    if ($coverSource !== '') {
+        if (strpos($coverSource, 'existing:') === 0) {
+            $coverId = (int) substr($coverSource, strlen('existing:'));
+            $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = :cid");
+            $cStmt->execute(['id' => $coverId, 'cid' => $id]);
+            $cp = $cStmt->fetchColumn();
+            if ($cp) {
+                $item['featured_image'] = $cp;
+            }
+        } elseif (strpos($coverSource, 'new:') === 0) {
+            $idx = (int) substr($coverSource, strlen('new:'));
+            if (isset($newPaths[$idx])) {
+                $item['featured_image'] = $newPaths[$idx];
+            }
+        } elseif ($coverSource === 'none') {
+            $item['featured_image'] = '';
+        }
+    }
+
+    // Remove featured image entirely (legacy single-image remove)
     if (isset($_POST['remove_image']) && $_POST['remove_image'] === '1') {
         if (!empty($item['featured_image'])) {
             delete_uploaded_file($item['featured_image']);
@@ -277,19 +336,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="glass-card-static p-4">
                         <label class="block text-sm font-medium text-emerald-200 mb-2">
-                            <?= $lang === 'ar' ? 'الصورة الرئيسية' : ($lang === 'fr' ? 'Image à la une' : 'Featured Image') ?>
+                            <?= $lang === 'ar' ? 'صور المقال (حتى ' . MAX_GALLERY_IMAGES . ' صورة)' : ($lang === 'fr' ? 'Images de l\'article (max ' . MAX_GALLERY_IMAGES . ')' : 'Article Images (up to ' . MAX_GALLERY_IMAGES . ')') ?>
                         </label>
-                        <?php if ($item['featured_image']): ?>
-                        <div class="mb-3 flex items-center gap-3">
-                            <img src="<?= e(upload_url($item['featured_image'])) ?>" alt="" class="w-32 h-24 object-cover rounded-lg border border-white/10">
-                            <label class="flex items-center gap-2 text-sm text-red-400 cursor-pointer">
-                                <input type="checkbox" name="remove_image" value="1"> <?= $lang === 'ar' ? 'حذف الصورة' : ($lang === 'fr' ? 'Supprimer' : 'Remove') ?>
-                            </label>
+
+                        <?php
+                        // Merge existing + newly uploaded (preview only) into one cover-selector grid.
+                        $coverCheckedId = null;
+                        if (!empty($item['featured_image'])) {
+                            foreach ($existingMedia as $m) {
+                                if ($m['file_path'] === $item['featured_image']) { $coverCheckedId = $m['id']; break; }
+                            }
+                        }
+                        ?>
+                        <?php if (!empty($existingMedia)): ?>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
+                            <?php foreach ($existingMedia as $m): ?>
+                            <div class="relative glass-card overflow-hidden group">
+                                <div class="aspect-square overflow-hidden">
+                                    <img src="<?= e(upload_url($m['file_path'])) ?>" alt="" class="w-full h-full object-cover">
+                                </div>
+                                <label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">
+                                    <input type="radio" name="cover_source" value="existing:<?= $m['id'] ?>" <?= $m['id'] === $coverCheckedId ? 'checked' : '' ?>>
+                                    <?= $lang === 'ar' ? 'غلاف' : ($lang === 'fr' ? 'Couverture' : 'Cover') ?>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
                         </div>
+                        <?php else: ?>
+                            <p class="text-xs text-emerald-300/40 mb-3"><?= $lang === 'ar' ? 'لا توجد صور بعد.' : ($lang === 'fr' ? 'Aucune image.' : 'No images yet.') ?></p>
                         <?php endif; ?>
-                        <input type="file" name="featured_image" accept="image/jpeg,image/png,image/webp" data-preview="imagePreview"
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300">
-                        <img id="imagePreview" class="hidden w-48 h-32 object-cover rounded-lg border border-white/10 mt-3">
+
+                        <label class="block text-sm font-medium text-emerald-200 mb-1 mt-2">
+                            <?= $lang === 'ar' ? 'إضافة صور جديدة' : ($lang === 'fr' ? 'Ajouter de nouvelles images' : 'Add new images') ?>
+                        </label>
+                        <input type="file" name="gallery_images[]" multiple accept="image/jpeg,image/png,image/webp" id="galleryInput"
+                               data-max="<?= MAX_GALLERY_IMAGES ?>"
+                               data-cover-name="cover_source" data-cover-prefix="new:"
+                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <div id="galleryPreview" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-3"></div>
+                        <p id="galleryCount" class="text-xs text-emerald-400 mt-2"></p>
+                        <p class="text-xs text-emerald-300/40 mt-1">
+                            <?= $lang === 'ar' ? 'الصورة المحددة كـ "غلاف" تظهر في القوائم. يمكنك أيضاً إدارة الصور من زر "إدارة الصور".' : ($lang === 'fr' ? 'L\'image marquée « couverture » apparaît dans les listes. Gérez les images via « Gérer les images ».' : 'The image marked "cover" is shown in listings. Manage images via "Manage images".') ?>
+                        </p>
                     </div>
                     
                     <!-- Video URL (only for Video type) -->

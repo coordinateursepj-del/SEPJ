@@ -43,6 +43,7 @@ define('ADMIN_ITEMS_PER_PAGE', 20);
 define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
 define('ALLOWED_EXTENSIONS', 'jpg,jpeg,png,webp');
 define('ALLOWED_MIME_TYPES', serialize(['image/jpeg', 'image/png', 'image/webp']));
+define('MAX_GALLERY_IMAGES', 20); // max images attached to a single content item
 
 // Timezone
 date_default_timezone_set('Africa/Tunis');

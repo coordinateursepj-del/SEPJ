@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initConfirmationDialogs();
     initLanguageTabs();
     initSearchFilters();
+    initGalleryPicker();
 });
 
 /**
@@ -242,6 +243,65 @@ function initSearchFilters() {
 function toggleSelectAll(source) {
     const checkboxes = document.querySelectorAll('[data-select-item]');
     checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+/**
+ * Multi-image gallery picker for content create/edit.
+ * - Previews selected files
+ * - Enforces a maximum number of images (data-max on the input)
+ * - Lets the user mark one image as the cover (radio, value = file index)
+ */
+function initGalleryPicker() {
+    const input = document.getElementById('galleryInput');
+    if (!input) return;
+
+    const max     = parseInt(input.dataset.max) || 20;
+    const preview = document.getElementById('galleryPreview');
+    const counter = document.getElementById('galleryCount');
+    if (!preview) return;
+
+    // When the page already has existing images with cover radios (name="cover_source"
+    // value="existing:ID"), the newly-picked files use value="new:INDEX" so the server
+    // can tell them apart.
+    const coverName  = input.dataset.coverName  || 'cover_source';
+    const coverPrefix = input.dataset.coverPrefix || 'new:';
+
+    const coverLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.cover)
+        ? SEPJ_LABELS.cover
+        : 'Couverture';
+
+    function render(files) {
+        preview.innerHTML = '';
+        const list = Array.from(files).slice(0, max);
+        list.forEach((file, idx) => {
+            const url = URL.createObjectURL(file);
+            const cell = document.createElement('div');
+            cell.className = 'relative glass-card overflow-hidden group';
+            cell.innerHTML =
+                '<div class="aspect-square overflow-hidden">' +
+                    '<img src="' + url + '" alt="" class="w-full h-full object-cover">' +
+                '</div>' +
+                '<label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">' +
+                    '<input type="radio" name="' + coverName + '" value="' + coverPrefix + idx + '"' + (idx === 0 ? ' checked' : '') + '>' +
+                    coverLabel +
+                '</label>';
+            preview.appendChild(cell);
+        });
+        if (counter) {
+            counter.textContent = list.length + ' / ' + max;
+        }
+    }
+
+    input.addEventListener('change', function() {
+        const files = Array.from(this.files || []);
+        if (files.length > max) {
+            // Keep only the first `max` on the input itself.
+            const dt = new DataTransfer();
+            files.slice(0, max).forEach(f => dt.items.add(f));
+            this.files = dt.files;
+        }
+        render(this.files);
+    });
 }
 
 /**
