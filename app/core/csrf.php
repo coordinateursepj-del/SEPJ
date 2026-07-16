@@ -40,12 +40,52 @@ function csrf_validate(): bool
  * True when PHP silently discarded the POST body for exceeding post_max_size.
  * In that case PHP empties $_POST and $_FILES with no upload error set, which
  * would otherwise look like a CSRF token mismatch.
+ *
+ * We check two signals:
+ *  1. The classic one: both $_POST and $_FILES are empty despite a non-zero
+ *     Content-Length (body was dropped entirely).
+ *  2. The Content-Length is larger than the server's post_max_size, which
+ *     means the body was truncated/dropped even if a few fields squeaked
+ *     through. This is the authoritative signal on OVH where limits are low.
  */
 function post_size_exceeded(): bool
 {
-    return $_SERVER['REQUEST_METHOD'] === 'POST'
-        && empty($_POST) && empty($_FILES)
-        && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return false;
+    }
+
+    $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if ($contentLength > 0 && empty($_POST) && empty($_FILES)) {
+        return true;
+    }
+
+    $maxPost = (int) (trim(ini_get('post_max_size')) ?: 0);
+    // Convert common ini shorthand (8M, 120M, 1K, 512) to bytes.
+    $maxPost = parse_ini_shorthand($maxPost > 0 ? ini_get('post_max_size') : '0');
+    if ($contentLength > 0 && $maxPost > 0 && $contentLength > $maxPost) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Convert a php.ini shorthand size (e.g. "8M", "120M", "1K") to bytes.
+ */
+function parse_ini_shorthand(string $value): int
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 0;
+    }
+    $unit = strtoupper(substr($value, -1));
+    $num  = (int) $value;
+    switch ($unit) {
+        case 'G': $num *= 1024;
+        case 'M': $num *= 1024;
+        case 'K': $num *= 1024;
+    }
+    return $num;
 }
 
 /**
