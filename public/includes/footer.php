@@ -8,7 +8,7 @@ $lang = current_lang();
 <!-- Footer -->
 <footer class="site-footer">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
             <div>
                 <div class="flex justify-center mb-5">
                     <a href="index.php" aria-label="<?= e(APP_NAME) ?>">
@@ -16,24 +16,30 @@ $lang = current_lang();
                     </a>
                 </div>
                 <h3 class="font-bold text-white mb-3 text-center"><?= e(get_setting('company_name', $lang) ?: __('company_name', $lang)) ?></h3>
-                <p class="text-sm text-emerald-200/70 leading-relaxed"><?= e(get_setting('about_summary', $lang)) ?></p>
+                <p class="text-sm text-emerald-200/70 leading-relaxed text-center"><?= e(get_setting('about_summary', $lang)) ?></p>
             </div>
-            <div>
-                <h3 class="font-bold text-white mb-4"><?= __('quick_links', $lang) ?></h3>
-                <div class="space-y-2">
+            <div class="bg-white/5 rounded-2xl p-6">
+                <h3 class="font-bold text-white mb-3"><?= __('quick_links', $lang) ?></h3>
+                <div class="space-y-2 mb-4">
                     <a href="projects.php" class="footer-link text-sm"><?= __('nav_projects', $lang) ?></a>
                     <a href="services.php" class="footer-link text-sm"><?= __('nav_services', $lang) ?></a>
                     <a href="news.php" class="footer-link text-sm"><?= __('nav_news', $lang) ?></a>
                     <a href="contact.php" class="footer-link text-sm"><?= __('nav_contact', $lang) ?></a>
                 </div>
-            </div>
-            <div>
-                <h3 class="font-bold text-white mb-4"><?= __('contact_us', $lang) ?></h3>
-                <div class="space-y-3 text-sm text-emerald-200/70">
-                    <p class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('address', $lang)) ?></p>
-                    <p class="flex items-center gap-2"><i class="fa-solid fa-phone text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('phone', $lang)) ?></p>
-                    <p class="flex items-center gap-2"><i class="fa-solid fa-envelope text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('email_primary', $lang)) ?></p>
-                    <p class="flex items-center gap-2"><i class="fa-solid fa-box text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('po_box', $lang)) ?></p>
+                <div class="border-t border-white/10 pt-4 mb-4">
+                    <h3 class="font-bold text-white mb-3"><?= __('contact_us', $lang) ?></h3>
+                    <div class="space-y-3 text-sm text-emerald-200/70">
+                        <p class="flex items-center gap-2"><i class="fa-solid fa-location-dot text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('address', $lang)) ?></p>
+                        <p class="flex items-center gap-2"><i class="fa-solid fa-phone text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('phone', $lang)) ?></p>
+                        <p class="flex items-center gap-2"><i class="fa-solid fa-envelope text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('email_primary', $lang)) ?></p>
+                        <p class="flex items-center gap-2"><i class="fa-solid fa-box text-emerald-400 w-4 shrink-0" aria-hidden="true"></i><?= e(get_setting('po_box', $lang)) ?></p>
+                    </div>
+                </div>
+                <div class="border-t border-white/10 pt-4">
+                    <a href="contact.php" class="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-sm font-semibold transition-colors">
+                        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                        <?= __('send_message', $lang) ?>
+                    </a>
                 </div>
             </div>
         </div>
