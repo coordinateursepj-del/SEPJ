@@ -1,0 +1,7 @@
+<?php require_once 'includes/header.php'; $lang=current_lang(); $l=['ar'=>'ar','fr'=>'fr','en'=>'en'][$lang]??'ar'; try{$items=db()->query("SELECT id,slug,COALESCE(NULLIF(title_{$l},''),title_ar) AS t,COALESCE(NULLIF(summary_{$l},''),summary_ar) AS s,featured_image,published_at FROM content_items WHERE type='activity' AND status='published' ORDER BY published_at DESC")->fetchAll();}catch(Exception$e){$items=[];} ?>
+<main id="main-content"><div class="page-hero"><div class="max-w-7xl mx-auto px-4"><h1><i class="fa-solid fa-calendar-check text-emerald-400" aria-hidden="true"></i><?= __('nav_activities',$lang) ?></h1></div></div>
+<section class="py-8 relative z-10"><div class="max-w-7xl mx-auto px-4">
+<?php if(empty($items)):?><div class="empty-state"><div class="empty-state-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></div><p><?= __('no_results',$lang)?></p></div>
+<?php else:?><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><?php foreach($items as $i):?><a href="page.php?slug=<?= e($i['slug'])?>" class="glass-card p-4 flex items-center gap-4 reveal"><?php if($i['featured_image']):?><img src="<?= e(upload_url($i['featured_image']))?>" alt="<?= e($i['t'])?>" loading="lazy" class="w-16 h-16 rounded-lg object-cover shrink-0"><?php endif;?><div><h3 class="text-white font-medium"><?= e($i['t'])?></h3><p class="text-xs text-emerald-300/60 mt-1"><?= format_date($i['published_at'],'d/m/Y')?></p></div></a><?php endforeach;?></div><?php endif;?>
+</div></section></main>
+<?php include 'includes/footer.php';?>
