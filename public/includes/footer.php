@@ -8,13 +8,13 @@ $lang = current_lang();
 <!-- Footer -->
 <footer class="site-footer">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-center mb-8">
-            <a href="index.php" aria-label="<?= e(APP_NAME) ?>">
-                <img src="assets/logo-sepj.png" alt="SEPJ Gabès" class="h-14 w-auto opacity-90" loading="lazy">
-            </a>
-        </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
+                <div class="flex justify-center mb-5">
+                    <a href="index.php" aria-label="<?= e(APP_NAME) ?>">
+                        <img src="assets/logo-sepj.png" alt="SEPJ Gabès" class="h-14 w-auto opacity-90" loading="lazy">
+                    </a>
+                </div>
                 <h3 class="font-bold text-white mb-3"><?= e(get_setting('company_name', $lang) ?: __('company_name', $lang)) ?></h3>
                 <p class="text-sm text-emerald-200/70 leading-relaxed"><?= e(get_setting('about_summary', $lang)) ?></p>
             </div>
