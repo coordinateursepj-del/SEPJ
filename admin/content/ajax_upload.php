@@ -4,10 +4,38 @@
  *
  * Uploads ONE image at a time (kept small to stay under OVH's FastCGI
  * request-length limit, which a single multi-file POST would exceed).
- * Returns JSON: { success, id, url, path, message }.
+ *
+ * This endpoint ONLY saves the file to disk and returns its path. It does NOT
+ * touch the database — the media row is created later, on Save, when we already
+ * have a valid content_item_id. This avoids any foreign-key constraint issues
+ * during the upload step.
+ *
+ * Returns JSON: { success, path, url, message }
  */
 
 require_once dirname(__DIR__, 2) . '/app/config/app.php';
+
+// Surface ANY PHP error as JSON so the browser shows the real message instead of
+// a blank "HTTP 500". This is essential to diagnose environment-specific failures.
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    if (!(error_reporting() & $errno)) {
+        return false;
+    }
+    http_response_code(200);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'message' => 'PHP error: ' . $errstr . ' in ' . $errfile . ':' . $errline]);
+    exit;
+});
+register_shutdown_function(function () {
+    $e = error_get_last();
+    if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_COMPILE_ERROR, E_CORE_ERROR], true)) {
+        http_response_code(200);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => 'Fatal: ' . $e['message'] . ' in ' . $e['file'] . ':' . $e['line']]);
+        exit;
+    }
+});
+
 require_once ROOT_PATH . '/app/core/db.php';
 require_once ROOT_PATH . '/app/core/auth.php';
 require_once ROOT_PATH . '/app/core/csrf.php';
@@ -26,20 +54,11 @@ if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['cs
     exit;
 }
 
-$contentId = (int) ($_POST['content_id'] ?? 0);
-$subdir    = ($_POST['subdir'] ?? 'content') === 'gallery' ? 'gallery' : 'content';
+$subdir = ($_POST['subdir'] ?? 'content') === 'gallery' ? 'gallery' : 'content';
 
 if (empty($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
     echo json_encode(['success' => false, 'message' => 'No file received.']);
     exit;
-}
-
-// Respect the global cap across existing + this upload.
-if ($contentId > 0) {
-    $count = (int) db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id")
-        ->execute(['id' => $contentId])->fetchColumn();
-    // We don't know how many are pending in this batch; the hard cap is enforced
-    // on save. Here we just guard a sane per-request limit.
 }
 
 $result = upload_file($_FILES['image'], $subdir);
@@ -49,33 +68,9 @@ if (!$result['success']) {
     exit;
 }
 
-// Persist a media row. For create (content_id = 0) we use a temp marker and
-// re-attach on save; for edit we attach immediately.
-$sortStmt = db()->prepare("SELECT MAX(sort_order) FROM media WHERE content_item_id = :id");
-$sortStmt->execute(['id' => $contentId]);
-$maxSort = (int) $sortStmt->fetchColumn();
-
-$stmt = db()->prepare("
-    INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at)
-    VALUES (:content_item_id, :file_path, :file_name, :file_type, :sort_order, NOW())
-");
-// Store as a temp row (content_item_id = NULL). The column is nullable and the
-// foreign key ignores NULLs, so this never violates the FK. On save, create.php /
-// edit.php re-attach these rows to the real content item by their id. (Using 0 as a
-// sentinel would break the FK and return HTTP 500.)
-$stmt->execute([
-    'content_item_id' => null,
-    'file_path'       => $result['path'],
-    'file_name'       => basename($result['path']),
-    'file_type'       => 'image',
-    'sort_order'      => $maxSort + 1,
-]);
-$mediaId = db()->lastInsertId();
-
 echo json_encode([
     'success' => true,
-    'id'      => $mediaId,
-    'url'     => upload_url($result['path']),
     'path'    => $result['path'],
+    'url'     => upload_url($result['path']),
 ]);
 exit;

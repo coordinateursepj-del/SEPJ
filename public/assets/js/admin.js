@@ -250,8 +250,9 @@ function toggleSelectAll(source) {
  *
  * Images are uploaded ONE AT A TIME via AJAX to ajax_upload.php (kept small so we
  * never hit OVH's FastCGI request-length limit with one huge multipart POST). Each
- * successful upload returns a media id; we store it in a hidden field and offer a
- * "cover" radio. The cover is posted as `cover_media_id`; ids as `uploaded_media_ids[]`.
+ * successful upload returns the saved file path; we store it in a hidden field and
+ * offer a "cover" radio. New images are posted as `uploaded_images[]` (paths); the
+ * chosen cover as `cover_path` (new) or `cover_media_id` (existing gallery image).
  */
 function initGalleryPicker() {
     const input = document.getElementById('galleryInput');
@@ -278,15 +279,15 @@ function initGalleryPicker() {
     // How many images already present (existing gallery + already-uploaded)?
     function currentCount() {
         const existing = document.querySelectorAll('#existingGallery [data-media-id]').length;
-        const uploaded = fields.querySelectorAll('input[name="uploaded_media_ids[]"]').length;
+        const uploaded = fields.querySelectorAll('input[name="uploaded_images[]"]').length;
         return existing + uploaded;
     }
 
-    function addHiddenId(id) {
+    function addHiddenPath(path) {
         const hidden = document.createElement('input');
         hidden.type = 'hidden';
-        hidden.name = 'uploaded_media_ids[]';
-        hidden.value = id;
+        hidden.name = 'uploaded_images[]';
+        hidden.value = path;
         fields.appendChild(hidden);
     }
 
@@ -296,17 +297,17 @@ function initGalleryPicker() {
         return cell;
     }
 
-    function appendUploaded(cell, mediaId, url, autoCover) {
+    function appendUploaded(cell, path, url, autoCover) {
         cell.innerHTML =
             '<div class="aspect-square overflow-hidden">' +
                 '<img src="' + url + '" alt="" class="w-full h-full object-cover">' +
             '</div>' +
             '<label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">' +
-                '<input type="radio" name="cover_media_id" value="' + mediaId + '"' + (autoCover ? ' checked' : '') + '>' +
+                '<input type="radio" name="cover_path" value="' + path + '"' + (autoCover ? ' checked' : '') + '>' +
                 coverLabel +
             '</label>';
-        addHiddenId(mediaId);
-        if (autoCover && !document.querySelector('input[name="cover_media_id"]:checked')) {
+        addHiddenPath(path);
+        if (autoCover && !document.querySelector('input[name="cover_path"]:checked')) {
             const radio = cell.querySelector('input[type="radio"]');
             if (radio) radio.checked = true;
         }
@@ -342,7 +343,7 @@ function initGalleryPicker() {
                 return;
             }
             if (data && data.success) {
-                appendUploaded(cell, data.id, data.url, currentCount() === 1);
+                appendUploaded(cell, data.path, data.url, currentCount() === 1);
             } else {
                 cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br>' + ((data && data.message) || '') + '</div>';
             }

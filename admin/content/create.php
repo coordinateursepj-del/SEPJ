@@ -95,42 +95,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Gallery images are uploaded individually via AJAX (see ajax_upload.php) so we
-    // never send one huge multipart POST (OVH FastCGI request-length limit). Each
-    // uploaded image already has a media row with content_item_id = 0 (temp). On save
-    // we re-attach those rows to the new item, enforce the cap, and set the cover.
-    $uploadedIds = [];
-    if (!empty($_POST['uploaded_media_ids']) && is_array($_POST['uploaded_media_ids'])) {
-        foreach ($_POST['uploaded_media_ids'] as $mid) {
-            $uploadedIds[] = (int) $mid;
+    // Gallery images are uploaded individually via AJAX (see ajax_upload.php). The
+    // endpoint only saves the file and returns its path; we create the media rows
+    // here on Save, where we already have a valid content_item_id (no FK issues).
+    $uploadedPaths = [];
+    if (!empty($_POST['uploaded_images']) && is_array($_POST['uploaded_images'])) {
+        foreach ($_POST['uploaded_images'] as $p) {
+            $p = trim($p);
+            if ($p !== '') {
+                $uploadedPaths[] = $p;
+            }
         }
     }
 
-    if (count($uploadedIds) > MAX_GALLERY_IMAGES) {
+    if (count($uploadedPaths) > MAX_GALLERY_IMAGES) {
         $errors[] = $lang === 'ar'
             ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى.'
             : ($lang === 'fr'
                 ? 'Vous pouvez télécharger un maximum de ' . MAX_GALLERY_IMAGES . ' images.'
                 : 'You can upload a maximum of ' . MAX_GALLERY_IMAGES . ' images.');
-        // Drop the excess media rows.
-        $dropStmt = db()->prepare("DELETE FROM media WHERE id = :id AND content_item_id = 0");
-        foreach (array_slice($uploadedIds, MAX_GALLERY_IMAGES) as $dropId) {
-            $dropStmt->execute(['id' => $dropId]);
-        }
-        $uploadedIds = array_slice($uploadedIds, 0, MAX_GALLERY_IMAGES);
+        $uploadedPaths = array_slice($uploadedPaths, 0, MAX_GALLERY_IMAGES);
     }
 
-    // Determine cover from the chosen media id (AJAX-uploaded or selected).
-    $coverMediaId = isset($_POST['cover_media_id']) ? (int) $_POST['cover_media_id'] : 0;
-    if ($coverMediaId > 0 && in_array($coverMediaId, $uploadedIds, true)) {
-        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = 0");
-        $cStmt->execute(['id' => $coverMediaId]);
+    // Cover: either an existing media id (cover_media_id) or a newly uploaded path
+    // (cover_path). The first uploaded image is the default cover.
+    $coverPath = '';
+    $coverPostedPath = trim((string) ($_POST['cover_path'] ?? ''));
+    $coverMediaId   = isset($_POST['cover_media_id']) ? (int) $_POST['cover_media_id'] : 0;
+    if ($coverPostedPath !== '' && in_array($coverPostedPath, $uploadedPaths, true)) {
+        $coverPath = $coverPostedPath;
+    } elseif ($coverMediaId > 0) {
+        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = :cid");
+        $cStmt->execute(['id' => $coverMediaId, 'cid' => 0]);
         $cp = $cStmt->fetchColumn();
         if ($cp) {
-            $item['featured_image'] = $cp;
+            $coverPath = $cp;
         }
     }
-    
+    if ($coverPath === '' && !empty($uploadedPaths)) {
+        $coverPath = $uploadedPaths[0];
+    }
+    $item['featured_image'] = $coverPath;
+
     // Save to database
     if (empty($errors)) {
         // Auto-translate missing fields before inserting
@@ -166,21 +172,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $newId = db()->lastInsertId();
 
-            // Attach any gallery images uploaded above (stored temporarily with content_item_id = 0)
-            // Attach the temp media rows (content_item_id = NULL) uploaded via AJAX to
-            // this new content item, and set the cover if it wasn't already chosen.
-            $attachStmt = db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id IS NULL");
-            foreach ($uploadedIds as $mid) {
-                $attachStmt->execute(['cid' => $newId, 'mid' => $mid]);
+            // Create media rows for each uploaded image, now that we have a valid
+            // content_item_id. We only insert — no FK risk because the id is real.
+            $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, media_type, sort_order, created_at) VALUES (:cid, :path, 'image', :so, NOW())");
+            foreach ($uploadedPaths as $idx => $p) {
+                $insMedia->execute(['cid' => $newId, 'path' => $p, 'so' => $idx]);
             }
 
-            $coverStmt = db()->prepare("SELECT file_path FROM media WHERE content_item_id = :cid ORDER BY sort_order ASC, id ASC LIMIT 1");
-            $coverStmt->execute(['cid' => $newId]);
-            $firstPath = $coverStmt->fetchColumn();
-            if (empty($item['featured_image']) && $firstPath) {
-                $item['featured_image'] = $firstPath;
+            if (empty($item['featured_image']) && !empty($uploadedPaths)) {
+                $item['featured_image'] = $uploadedPaths[0];
                 $updCov = db()->prepare("UPDATE content_items SET featured_image = :fi WHERE id = :id");
-                $updCov->execute(['fi' => $firstPath, 'id' => $newId]);
+                $updCov->execute(['fi' => $uploadedPaths[0], 'id' => $newId]);
             }
 
             log_audit($_SESSION['user_id'], 'create', $type, (int)$newId);

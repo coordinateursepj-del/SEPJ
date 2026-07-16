@@ -96,50 +96,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Gallery images are uploaded individually via AJAX (ajax_upload.php) so we never
-    // send one huge multipart POST (OVH FastCGI request-length limit). Newly uploaded
-    // images arrive as media ids in uploaded_media_ids[]; existing ones keep their rows.
-    $uploadedIds = [];
-    if (!empty($_POST['uploaded_media_ids']) && is_array($_POST['uploaded_media_ids'])) {
-        foreach ($_POST['uploaded_media_ids'] as $mid) {
-            $uploadedIds[] = (int) $mid;
+    // Gallery images are uploaded individually via AJAX (ajax_upload.php). The
+    // endpoint only saves the file and returns its path; we create the media rows
+    // here on Save, where we already have a valid content_item_id (no FK issues).
+    $uploadedPaths = [];
+    if (!empty($_POST['uploaded_images']) && is_array($_POST['uploaded_images'])) {
+        foreach ($_POST['uploaded_images'] as $p) {
+            $p = trim($p);
+            if ($p !== '') {
+                $uploadedPaths[] = $p;
+            }
         }
     }
 
     $totalCount = (int) db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id")
         ->execute(['id' => $id])->fetchColumn();
-    if (($totalCount + count($uploadedIds)) > MAX_GALLERY_IMAGES) {
+    if (($totalCount + count($uploadedPaths)) > MAX_GALLERY_IMAGES) {
         $errors[] = $lang === 'ar'
             ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى (لديك حالياً ' . $totalCount . ').'
             : ($lang === 'fr'
                 ? 'Maximum ' . MAX_GALLERY_IMAGES . ' images (vous en avez déjà ' . $totalCount . ').'
                 : 'Maximum ' . MAX_GALLERY_IMAGES . ' images (you already have ' . $totalCount . ').');
-        // Drop the just-uploaded overflow rows.
-        $dropStmt = db()->prepare("DELETE FROM media WHERE id = :id AND content_item_id IS NULL");
-        foreach (array_slice($uploadedIds, MAX_GALLERY_IMAGES - $totalCount) as $dropId) {
-            $dropStmt->execute(['id' => $dropId]);
-        }
-        $uploadedIds = array_slice($uploadedIds, 0, MAX_GALLERY_IMAGES - $totalCount);
+        $uploadedPaths = array_slice($uploadedPaths, 0, MAX_GALLERY_IMAGES - $totalCount);
     }
 
-    if (empty($errors) && !empty($uploadedIds)) {
-        foreach ($uploadedIds as $mid) {
-            db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id IS NULL")
-                ->execute(['cid' => $id, 'mid' => $mid]);
-        }
-    }
-
-    // Determine cover.
-    // cover_media_id: an existing media id, a newly uploaded id, or 0 for none.
-    $coverMediaId = isset($_POST['cover_media_id']) ? (int) $_POST['cover_media_id'] : 0;
-    if ($coverMediaId > 0) {
-        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND (content_item_id = :cid OR content_item_id IS NULL)");
+    // Determine cover: a newly uploaded path (cover_path) or an existing media id
+    // (cover_media_id). If none chosen, the first existing gallery image wins.
+    $coverPath = '';
+    $coverPostedPath = trim((string) ($_POST['cover_path'] ?? ''));
+    $coverMediaId   = isset($_POST['cover_media_id']) ? (int) $_POST['cover_media_id'] : 0;
+    if ($coverPostedPath !== '' && in_array($coverPostedPath, $uploadedPaths, true)) {
+        $coverPath = $coverPostedPath;
+    } elseif ($coverMediaId > 0) {
+        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND content_item_id = :cid");
         $cStmt->execute(['id' => $coverMediaId, 'cid' => $id]);
         $cp = $cStmt->fetchColumn();
         if ($cp) {
-            $item['featured_image'] = $cp;
+            $coverPath = $cp;
         }
     }
+    if ($coverPath === '' && !empty($item['featured_image'])) {
+        $coverPath = $item['featured_image'];
+    }
+    $item['featured_image'] = $coverPath;
     // Remove featured image entirely (legacy single-image remove)
     if (isset($_POST['remove_image']) && $_POST['remove_image'] === '1') {
         if (!empty($item['featured_image'])) {
@@ -192,6 +191,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'id' => $id,
             ]);
             
+            // Create media rows for each newly uploaded image, with a real content id.
+            $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, media_type, sort_order, created_at) VALUES (:cid, :path, 'image', :so, NOW())");
+            foreach ($uploadedPaths as $idx => $p) {
+                $insMedia->execute(['cid' => $id, 'path' => $p, 'so' => $totalCount + $idx]);
+            }
+
             log_audit($_SESSION['user_id'], 'update', $type, $id);
             csrf_regenerate();
             $flashMsg = $lang === 'ar' ? 'تم التحديث بنجاح.' : ($lang === 'fr' ? 'Mis à jour avec succès.' : 'Updated successfully.');
@@ -354,7 +359,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?= $lang === 'ar' ? 'تُرفع كل صورة على حدة. الصورة المحددة كـ "غلاف" تظهر في القوائم. يمكنك أيضاً إدارة الصور من زر "إدارة الصور".' : ($lang === 'fr' ? 'Chaque image est envoyée séparément. Celle marquée « couverture » apparaît dans les listes. Gérez les images via « Gérer les images ».' : 'Each image is uploaded separately. The one marked "cover" is shown in listings. Manage images via "Manage images".') ?>
                         </p>
-                        <!-- Holds AJAX-uploaded media ids; cover is posted as cover_media_id -->
+                        <!-- Holds AJAX-uploaded image paths; cover path posted as cover_path -->
                         <div id="galleryFields"></div>
                     </div>
                     
