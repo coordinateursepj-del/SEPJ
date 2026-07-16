@@ -1660,12 +1660,19 @@ main, section, article { overflow-x: hidden; }
     direction: ltr;
 }
 
-/* RTL: move floating stack to the right side for Arabic */
+/* RTL: move floating stack to the right side for Arabic,
+   flip individual buttons so icon is right / label expands left */
 [dir="rtl"] .float-stack {
     left: auto;
     right: 1.25rem;
     align-items: flex-end;
+}
+[dir="rtl"] .float-stack .float-contact,
+[dir="rtl"] .float-stack .social-float-btn {
     direction: rtl;
+}
+[dir="rtl"] .float-stack .social-float-group {
+    align-items: flex-end;
 }
 
 /* Contact button — collapsed icon pill that expands to reveal its label */
