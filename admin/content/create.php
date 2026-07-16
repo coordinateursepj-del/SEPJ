@@ -167,9 +167,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newId = db()->lastInsertId();
 
             // Attach any gallery images uploaded above (stored temporarily with content_item_id = 0)
-            // Attach the temp media rows (content_item_id = 0) uploaded via AJAX to
+            // Attach the temp media rows (content_item_id = NULL) uploaded via AJAX to
             // this new content item, and set the cover if it wasn't already chosen.
-            $attachStmt = db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id = 0");
+            $attachStmt = db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id IS NULL");
             foreach ($uploadedIds as $mid) {
                 $attachStmt->execute(['cid' => $newId, 'mid' => $mid]);
             }

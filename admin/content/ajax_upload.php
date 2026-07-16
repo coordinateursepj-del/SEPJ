@@ -59,8 +59,12 @@ $stmt = db()->prepare("
     INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at)
     VALUES (:content_item_id, :file_path, :file_name, :file_type, :sort_order, NOW())
 ");
+// Store as a temp row (content_item_id = NULL). The column is nullable and the
+// foreign key ignores NULLs, so this never violates the FK. On save, create.php /
+// edit.php re-attach these rows to the real content item by their id. (Using 0 as a
+// sentinel would break the FK and return HTTP 500.)
 $stmt->execute([
-    'content_item_id' => $contentId,
+    'content_item_id' => null,
     'file_path'       => $result['path'],
     'file_name'       => basename($result['path']),
     'file_type'       => 'image',

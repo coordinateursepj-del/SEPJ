@@ -115,16 +115,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ? 'Maximum ' . MAX_GALLERY_IMAGES . ' images (vous en avez déjà ' . $totalCount . ').'
                 : 'Maximum ' . MAX_GALLERY_IMAGES . ' images (you already have ' . $totalCount . ').');
         // Drop the just-uploaded overflow rows.
-        $dropStmt = db()->prepare("DELETE FROM media WHERE id = :id AND content_item_id = :cid");
+        $dropStmt = db()->prepare("DELETE FROM media WHERE id = :id AND content_item_id IS NULL");
         foreach (array_slice($uploadedIds, MAX_GALLERY_IMAGES - $totalCount) as $dropId) {
-            $dropStmt->execute(['id' => $dropId, 'cid' => $id]);
+            $dropStmt->execute(['id' => $dropId]);
         }
         $uploadedIds = array_slice($uploadedIds, 0, MAX_GALLERY_IMAGES - $totalCount);
     }
 
     if (empty($errors) && !empty($uploadedIds)) {
         foreach ($uploadedIds as $mid) {
-            db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id = 0")
+            db()->prepare("UPDATE media SET content_item_id = :cid WHERE id = :mid AND content_item_id IS NULL")
                 ->execute(['cid' => $id, 'mid' => $mid]);
         }
     }
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // cover_media_id: an existing media id, a newly uploaded id, or 0 for none.
     $coverMediaId = isset($_POST['cover_media_id']) ? (int) $_POST['cover_media_id'] : 0;
     if ($coverMediaId > 0) {
-        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND (content_item_id = :cid OR content_item_id = 0)");
+        $cStmt = db()->prepare("SELECT file_path FROM media WHERE id = :id AND (content_item_id = :cid OR content_item_id IS NULL)");
         $cStmt->execute(['id' => $coverMediaId, 'cid' => $id]);
         $cp = $cStmt->fetchColumn();
         if ($cp) {
