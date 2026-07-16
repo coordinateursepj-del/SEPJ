@@ -1132,12 +1132,21 @@ select.form-input option,
 }
 
 .footer-link {
-    color: var(--text-secondary);
+    color: var(--text-base);
     transition: var(--transition-smooth);
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.3rem 0.5rem;
     border-radius: 0.375rem;
-    border-left: 2px solid transparent;
+    border-left: 2px solid rgba(255,255,255,0.12);
+}
+.footer-link::after {
+    content: '\203A';
+    font-size: 1.1em;
+    opacity: 0.4;
+    transition: var(--transition-smooth);
+    flex-shrink: 0;
 }
 
 .footer-link:hover {
@@ -1146,15 +1155,27 @@ select.form-input option,
     background: rgba(255,255,255,0.04);
     border-left-color: var(--emerald-400);
 }
+.footer-link:hover::after {
+    opacity: 1;
+    transform: translateX(2px);
+}
 
 [dir="rtl"] .footer-link {
     border-left: none;
-    border-right: 2px solid transparent;
+    border-right: 2px solid rgba(255,255,255,0.12);
+}
+[dir="rtl"] .footer-link::after {
+    content: '\203A';
+    order: -1;
+    transform: scaleX(-1);
 }
 
 [dir="rtl"] .footer-link:hover {
     transform: translateX(-4px);
     border-right-color: var(--emerald-400);
+}
+[dir="rtl"] .footer-link:hover::after {
+    transform: scaleX(-1) translateX(2px);
 }
 
 /* ---------- Responsive ---------- */
