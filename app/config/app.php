@@ -9,8 +9,9 @@ define('APP_NAME_FR', "Société d'Environnement, Plantation et Jardinage de Gab
 
 // On production the vhost docroot is the project root, so there is
 // no base-path prefix. On localhost the project sits under /sepj-gabes.
-if (($_SERVER['HTTP_HOST'] ?? '') === 'appsoc.sepjgabes.tn') {
-    define('BASE_URL',      'https://appsoc.sepjgabes.tn');
+$host = $_SERVER['HTTP_HOST'] ?? '';
+if ($host === 'sepjgabes.tn' || $host === 'www.sepjgabes.tn') {
+    define('BASE_URL',      'https://sepjgabes.tn');
     define('APP_BASE_PATH', '');
 } else {
     define('BASE_URL',      'http://localhost/sepj-gabes');
