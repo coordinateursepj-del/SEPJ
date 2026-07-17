@@ -87,6 +87,115 @@ class LibreTranslateService
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Google Translate Service
+// ─────────────────────────────────────────────────────────────────────────────
+
+class GoogleTranslateService
+{
+    private int $timeout;
+
+    public function __construct()
+    {
+        $this->timeout = defined('TRANSLATION_TIMEOUT')
+            ? max(5, (int) TRANSLATION_TIMEOUT)
+            : 30;
+    }
+
+    /**
+     * Translate $text from $from to $to via Google Translate's public endpoint.
+     *
+     * @param string $text   Source text (plain or HTML)
+     * @param string $from   ISO 639-1 source language code (ar, fr, en)
+     * @param string $to     ISO 639-1 target language code (ar, fr, en)
+     * @param bool   $isHtml Pass true to preserve HTML tags during translation
+     * @return string Translated text, or original $text on any failure
+     */
+    public function translate(string $text, string $from, string $to, bool $isHtml = false): string
+    {
+        // Google expects two-letter codes; map our ar/fr/en directly.
+        $params = http_build_query([
+            'client'   => 'gtx',
+            'sl'       => $from,
+            'tl'       => $to,
+            'dt'       => 't',
+            'q'        => $text,
+        ]);
+
+        $endpoint = 'https://translate.google.com/translate_a/single?' . $params;
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => $this->timeout,
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+            ],
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+        ]);
+
+        $body     = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlErr) {
+            error_log("[GoogleTranslate] cURL error ({$from}→{$to}): {$curlErr}");
+            return $text;
+        }
+
+        if ($httpCode !== 200) {
+            error_log("[GoogleTranslate] HTTP {$httpCode} ({$from}→{$to}): " . substr((string) $body, 0, 300));
+            return $text;
+        }
+
+        $translated = self::parseResponse($body);
+
+        return $translated !== '' ? $translated : $text;
+    }
+
+    /**
+     * Parse Google's nested-JSON response (array of sentence chunks).
+     */
+    private static function parseResponse(string $body): string
+    {
+        $data = json_decode($body, true);
+        if (!is_array($data) || !isset($data[0])) {
+            return '';
+        }
+
+        $out = '';
+        foreach ($data[0] as $chunk) {
+            if (is_array($chunk) && isset($chunk[0]) && is_string($chunk[0])) {
+                $out .= $chunk[0];
+            }
+        }
+
+        return trim($out);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Service Factory
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Return the translation service instance based on TRANSLATION_PROVIDER.
+ * Defaults to Google Translate (more reliable), falls back to LibreTranslate.
+ */
+function translation_service_instance()
+{
+    $provider = defined('TRANSLATION_PROVIDER') ? strtolower(TRANSLATION_PROVIDER) : 'google';
+
+    if ($provider === 'libretranslate') {
+        return new LibreTranslateService();
+    }
+
+    return new GoogleTranslateService();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -165,7 +274,7 @@ function fill_missing_translations(array $item, bool $enabled = true): array
         return compact('item', 'warnings', 'translated');
     }
 
-    $service     = new LibreTranslateService();
+    $service     = translation_service_instance();
     $targetLangs = array_diff(['ar', 'fr', 'en'], [$sourceLang]);
 
     // [field name => may contain HTML]

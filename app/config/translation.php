@@ -11,6 +11,9 @@
 // Set to false to disable auto-translation completely without removing any code.
 define('ENABLE_TRANSLATION', true);
 
+// Translation provider: 'google' or 'libretranslate'
+define('TRANSLATION_PROVIDER', 'google');
+
 // LibreTranslate HTTP endpoint (no API key required).
 // Using fedilab public instance — tested and working.
 // Alternative: run locally with: pip install libretranslate && libretranslate --load-only ar,fr,en
