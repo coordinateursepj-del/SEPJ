@@ -45,10 +45,10 @@ echo "[3] public/page.php video block present: " . ($hasBlock ? "YES" : "NO") . 
 
 // 4) Show latest posts and their stored video_url
 try {
-    $rows = db()->query("SELECT id, type, LEFT(video_url,60) AS vu FROM content_items WHERE type='post' ORDER BY id DESC LIMIT 5")->fetchAll();
+    $rows = db()->query("SELECT id, type, slug, LEFT(video_url,60) AS vu FROM content_items WHERE type='post' ORDER BY id DESC LIMIT 8")->fetchAll();
     echo "[4] Latest posts:\n";
     foreach ($rows as $r) {
-        echo "    id={$r['id']} video_url=[" . ($r['vu'] ?? '') . "]\n";
+        echo "    id={$r['id']} slug=[{$r['slug']}] video_url=[" . ($r['vu'] ?? '') . "]\n";
     }
 } catch (Exception $e) {
     echo "[4] could not read posts: " . $e->getMessage() . "\n";
