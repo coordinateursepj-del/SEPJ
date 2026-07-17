@@ -4,12 +4,21 @@
 -- Re-seeds the two dropdown sections:
 --   1) مصالح الإدارة العامة  (general administration departments)
 --   2) الإدارات الفرعية للشركة (company sub-directorates)
--- Safe to run multiple times.
+-- Safe to run multiple times. MySQL 8.x compatible (no IF NOT EXISTS on ALTER).
 -- ============================================================
 
--- 1) Add category column if missing
-ALTER TABLE `contact_services`
-    ADD COLUMN IF NOT EXISTS `category` VARCHAR(40) NOT NULL DEFAULT '' COMMENT 'general | sub';
+-- 1) Add category column if missing (MySQL 8 does not support IF NOT EXISTS on ALTER)
+SET @exist = (SELECT COUNT(*)
+              FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'contact_services'
+                AND COLUMN_NAME  = 'category');
+SET @sql = IF(@exist = 0,
+              'ALTER TABLE `contact_services` ADD COLUMN `category` VARCHAR(40) NOT NULL DEFAULT '''' COMMENT ''general | sub''',
+              'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 2) Remove the old non-executive rows so we can re-seed cleanly.
 --    (contact_messages stores the subject as text, so no FK breakage.)
