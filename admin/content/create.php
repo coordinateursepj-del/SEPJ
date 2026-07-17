@@ -147,11 +147,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $translation_warnings = $tr['warnings'];
 
         try {
-            $stmt = db()->prepare("
-                INSERT INTO content_items (type, rse_category, slug, title_ar, title_fr, title_en, summary_ar, summary_fr, summary_en, body_ar, body_fr, body_en, featured_image, video_url, video_thumb, status, is_featured, published_at, created_by, created_at, updated_at)
-                VALUES (:type, :rse_category, :slug, :title_ar, :title_fr, :title_en, :summary_ar, :summary_fr, :summary_en, :body_ar, :body_fr, :body_en, :featured_image, :video_url, :video_thumb, :status, :is_featured, :published_at, :created_by, NOW(), NOW())
-            ");
-            $stmt->execute([
+            $hasThumbCol = table_column_exists('content_items', 'video_thumb');
+            $cols = ['type', 'rse_category', 'slug', 'title_ar', 'title_fr', 'title_en', 'summary_ar', 'summary_fr', 'summary_en', 'body_ar', 'body_fr', 'body_en', 'featured_image', 'video_url'];
+            $params = [
                 'type' => $type,
                 'rse_category' => $item['rse_category'] ?: null,
                 'slug' => $item['slug'],
@@ -166,12 +164,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'body_en' => $item['body_en'],
                 'featured_image' => $item['featured_image'],
                 'video_url' => $item['video_url'] ?: null,
-                'video_thumb' => $item['video_thumb'] !== '' ? $item['video_thumb'] : null,
-                'status' => $item['status'],
-                'is_featured' => $item['is_featured'],
-                'published_at' => $item['status'] === 'published' ? $item['published_at'] : null,
-                'created_by' => $_SESSION['user_id'],
-            ]);
+            ];
+            if ($hasThumbCol) {
+                $cols[] = 'video_thumb';
+                $params['video_thumb'] = $item['video_thumb'] !== '' ? $item['video_thumb'] : null;
+            }
+            $cols[] = 'status'; $params['status'] = $item['status'];
+            $cols[] = 'is_featured'; $params['is_featured'] = $item['is_featured'];
+            $cols[] = 'published_at'; $params['published_at'] = $item['status'] === 'published' ? $item['published_at'] : null;
+            $cols[] = 'created_by'; $params['created_by'] = $_SESSION['user_id'];
+
+            $colSql = implode(', ', $cols);
+            $valSql = implode(', ', array_map(fn($c) => ":$c", $cols));
+            $stmt = db()->prepare("INSERT INTO content_items ($colSql, created_at, updated_at) VALUES ($valSql, NOW(), NOW())");
+            $stmt->execute($params);
             
             $newId = db()->lastInsertId();
 

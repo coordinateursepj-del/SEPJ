@@ -207,6 +207,30 @@ function youtube_id_from_url(string $url): ?string
 }
 
 /**
+ * Check whether a column exists on a table (cached per request).
+ * Used to keep save logic working even before a DB migration has run.
+ */
+function table_column_exists(string $table, string $column): bool
+{
+    static $cache = [];
+    $key = $table . '.' . $column;
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+    try {
+        $stmt = db()->prepare("
+            SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t AND COLUMN_NAME = :c
+        ");
+        $stmt->execute(['t' => $table, 'c' => $column]);
+        $cache[$key] = (int) $stmt->fetchColumn() > 0;
+    } catch (Exception $e) {
+        $cache[$key] = false;
+    }
+    return $cache[$key];
+}
+
+/**
  * Build a canonical YouTube embed URL from any YouTube link.
  *
  * @return string|null https://www.youtube.com/embed/ID, or null if not a YouTube URL.

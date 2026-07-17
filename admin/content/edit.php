@@ -166,24 +166,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $translation_warnings = $tr['warnings'];
 
         try {
-            $stmt = db()->prepare("
-                UPDATE content_items SET
-                    rse_category = :rse_category,
-                    slug = :slug,
-                    title_ar = :title_ar, title_fr = :title_fr, title_en = :title_en,
-                    summary_ar = :summary_ar, summary_fr = :summary_fr, summary_en = :summary_en,
-                    body_ar = :body_ar, body_fr = :body_fr, body_en = :body_en,
-                    featured_image = :featured_image,
-                    video_url = :video_url,
-                    video_thumb = :video_thumb,
-                    status = :status,
-                    is_featured = :is_featured,
-                    published_at = :published_at,
-                    updated_by = :updated_by,
-                    updated_at = NOW()
-                WHERE id = :id
-            ");
-            $stmt->execute([
+            $hasThumbCol = table_column_exists('content_items', 'video_thumb');
+            $set = [
+                'rse_category = :rse_category',
+                'slug = :slug',
+                'title_ar = :title_ar', 'title_fr = :title_fr', 'title_en = :title_en',
+                'summary_ar = :summary_ar', 'summary_fr = :summary_fr', 'summary_en = :summary_en',
+                'body_ar = :body_ar', 'body_fr = :body_fr', 'body_en = :body_en',
+                'featured_image = :featured_image',
+                'video_url = :video_url',
+            ];
+            $params = [
                 'rse_category' => $item['rse_category'] ?: null,
                 'slug' => $item['slug'],
                 'title_ar' => $item['title_ar'],
@@ -197,13 +190,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'body_en' => $item['body_en'],
                 'featured_image' => $item['featured_image'],
                 'video_url' => $item['video_url'] ?: null,
-                'video_thumb' => $item['video_thumb'] !== '' ? $item['video_thumb'] : null,
-                'status' => $item['status'],
-                'is_featured' => $item['is_featured'],
-                'published_at' => $item['status'] === 'published' ? $item['published_at'] : null,
-                'updated_by' => $_SESSION['user_id'],
-                'id' => $id,
-            ]);
+            ];
+            if ($hasThumbCol) {
+                $set[] = 'video_thumb = :video_thumb';
+                $params['video_thumb'] = $item['video_thumb'] !== '' ? $item['video_thumb'] : null;
+            }
+            $set[] = 'status = :status';
+            $set[] = 'is_featured = :is_featured';
+            $set[] = 'published_at = :published_at';
+            $set[] = 'updated_by = :updated_by';
+            $set[] = 'updated_at = NOW()';
+            $params['status'] = $item['status'];
+            $params['is_featured'] = $item['is_featured'];
+            $params['published_at'] = $item['status'] === 'published' ? $item['published_at'] : null;
+            $params['updated_by'] = $_SESSION['user_id'];
+            $params['id'] = $id;
+
+            $stmt = db()->prepare("UPDATE content_items SET " . implode(', ', $set) . " WHERE id = :id");
+            $stmt->execute($params);
             
             // Create media rows for each newly uploaded image, with a real content id.
             $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at) VALUES (:cid, :path, :name, 'image', :so, NOW())");
