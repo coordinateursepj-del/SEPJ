@@ -77,20 +77,19 @@ try {
 $slugArg = $_GET['slug'] ?? '';
 if ($slugArg !== '') {
     try {
-        $s = db()->prepare("SELECT * FROM content_items WHERE slug=:s LIMIT 1");
+        $s = db()->prepare("SELECT * FROM content_items WHERE slug=:s AND status='published' LIMIT 1");
         $s->execute(['s' => $slugArg]);
-        $row = $s->fetch();
+        $item = $s->fetch();
         echo "[5] slug='$slugArg':\n";
-        if (!$row) {
-            echo "    NOT FOUND\n";
+        if (!$item) {
+            echo "    NOT FOUND / not published\n";
         } else {
-            $raw = $row['video_url'] ?? '';
-            echo "    status=[" . ($row['status'] ?? 'NULL') . "]\n";
-            echo "    raw video_url=[" . $raw . "]\n";
-            echo "    video_url strlen=" . strlen($raw) . "\n";
-            echo "    youtube_embed_url()=[" . var_export(youtube_embed_url($raw), true) . "]\n";
-            $bodyRaw = $row['body'] ?? $row['content'] ?? $row['body_fr'] ?? $row['content_fr'] ?? '';
-            echo "    youtube_embed_url(body)=[" . var_export(youtube_embed_url($bodyRaw), true) . "]\n";
+            $body = $item['body'] ?? $item['content'] ?? '';
+            $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '') ?? youtube_embed_url($body ?? '');
+            echo "    status=[" . ($item['status'] ?? 'NULL') . "]\n";
+            echo "    video_url=[" . ($item['video_url'] ?? '') . "]\n";
+            echo "    \$pageVideoEmbed=[" . var_export($pageVideoEmbed, true) . "]\n";
+            echo "    will_render_block=" . ($pageVideoEmbed ? 'YES' : 'NO') . "\n";
         }
     } catch (Exception $e) {
         echo "[5] lookup failed: " . $e->getMessage() . "\n";
