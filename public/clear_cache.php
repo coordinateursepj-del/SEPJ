@@ -58,7 +58,7 @@ try {
 $slugArg = $_GET['slug'] ?? '';
 if ($slugArg !== '') {
     try {
-        $s = db()->prepare("SELECT id, type, slug, video_url, LEFT(video_thumb,40) AS vt, LEFT(featured_image,40) AS fi, LEFT(body,80) AS body80 FROM content_items WHERE slug=:s LIMIT 1");
+        $s = db()->prepare("SELECT id, type, slug, video_url, LEFT(video_thumb,40) AS vt, LEFT(featured_image,40) AS fi FROM content_items WHERE slug=:s LIMIT 1");
         $s->execute(['s' => $slugArg]);
         $row = $s->fetch();
         echo "[5] slug='$slugArg':\n";
