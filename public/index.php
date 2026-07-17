@@ -47,7 +47,7 @@ $address = get_setting('address', $lang);
                 <a href="news.php" class="glass-btn glass-btn-primary">
                     <i class="fa-solid fa-newspaper" aria-hidden="true"></i>
                     <?= __('nav_news', $lang) ?>
-                    <i class="fa-solid fa-arrow-right text-xs opacity-70" aria-hidden="true"></i>
+                    <i class="fa-solid fa-arrow-right text-xs opacity-70 rtl-flip-arrow" aria-hidden="true"></i>
                 </a>
                 <a href="projects.php" class="glass-btn">
                     <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
