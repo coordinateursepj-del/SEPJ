@@ -77,7 +77,7 @@ try {
 $slugArg = $_GET['slug'] ?? '';
 if ($slugArg !== '') {
     try {
-        $s = db()->prepare("SELECT id, type, slug, video_url, video_thumb, featured_image, body, body_fr, body_ar, content, content_fr, content_ar FROM content_items WHERE slug=:s LIMIT 1");
+        $s = db()->prepare("SELECT * FROM content_items WHERE slug=:s LIMIT 1");
         $s->execute(['s' => $slugArg]);
         $row = $s->fetch();
         echo "[5] slug='$slugArg':\n";
@@ -85,10 +85,12 @@ if ($slugArg !== '') {
             echo "    NOT FOUND\n";
         } else {
             $raw = $row['video_url'] ?? '';
+            echo "    status=[" . ($row['status'] ?? 'NULL') . "]\n";
             echo "    raw video_url=[" . $raw . "]\n";
-            echo "    hex len video_url=" . strlen($raw) . "\n";
+            echo "    video_url strlen=" . strlen($raw) . "\n";
             echo "    youtube_embed_url()=[" . var_export(youtube_embed_url($raw), true) . "]\n";
-            echo "    youtube_id_from_url()=[" . var_export(youtube_id_from_url($raw), true) . "]\n";
+            $bodyRaw = $row['body'] ?? $row['content'] ?? $row['body_fr'] ?? $row['content_fr'] ?? '';
+            echo "    youtube_embed_url(body)=[" . var_export(youtube_embed_url($bodyRaw), true) . "]\n";
         }
     } catch (Exception $e) {
         echo "[5] lookup failed: " . $e->getMessage() . "\n";
