@@ -10,12 +10,30 @@ require_once ROOT_PATH . '/app/core/db.php';
 header('Content-Type: text/plain; charset=utf-8');
 echo "=== SEPJ cache + DB check ===\n\n";
 
-// 1) Clear OPcache so the newly deployed PHP actually runs
+// 1) Clear OPcache so the newly deployed PHP actually runs.
+// On OVH shared hosting opcache_reset() often returns false (no effect),
+// so we also force-invalidate the specific files we care about and bump
+// their mtime as a fallback that timestamp-based validation will honor.
+$resetOk = false;
 if (function_exists('opcache_reset')) {
-    opcache_reset();
-    echo "[1] OPcache cleared.\n";
-} else {
-    echo "[1] OPcache not enabled (files run fresh each request).\n";
+    $resetOk = @opcache_reset();
+}
+echo "[1] opcache_reset() returned: " . var_export($resetOk, true) . "\n";
+
+$invalidateTargets = [
+    ROOT_PATH . '/public/page.php',
+    ROOT_PATH . '/app/core/helpers.php',
+];
+foreach ($invalidateTargets as $f) {
+    if (function_exists('opcache_invalidate') && file_exists($f)) {
+        @opcache_invalidate($f, true);
+    }
+    @touch($f); // change mtime so validate_timestamps picks up the new source
+}
+
+if (function_exists('opcache_get_status')) {
+    $st = @opcache_get_status(false);
+    echo "[1b] OPcache enabled: " . (empty($st) ? "no" : "yes") . "\n";
 }
 
 // 2) Check the video_thumb column and create it if missing
