@@ -107,10 +107,12 @@ require_once 'includes/header.php';
             </div>
 
             <?php
-            // BUILDMARKER:videoblock-v3
             // Use the same resolution order as the (working) Videos page:
             // explicit video_url first, then fall back to a YouTube link
             // embedded anywhere in the article body.
+            ?>
+            <!-- DEPLOYED:videoblock-v3 -->
+            <?php
             $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '') ?? youtube_embed_url($body ?? '');
             if ($pageVideoEmbed):
                 $pageVideoThumb = youtube_thumbnail_url(
