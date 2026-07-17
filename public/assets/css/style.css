@@ -1163,6 +1163,7 @@ select.form-input option,
 }
 
 [dir="rtl"] .footer-link {
+    flex-direction: row-reverse;
     border-left: none;
     border-right: 2px solid rgba(255,255,255,0.12);
 }
