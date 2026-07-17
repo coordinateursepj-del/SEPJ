@@ -434,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="checkbox" name="auto_translate" value="1" <?= $auto_translate ? 'checked' : '' ?>
                                        class="rounded bg-white/5 border-white/20 text-emerald-500">
                                 <?= $lang === 'ar' ? 'ترجمة تلقائية للحقول الفارغة' : ($lang === 'fr' ? 'Traduire automatiquement les champs vides' : 'Auto-translate empty fields') ?>
-                                <span class="text-xs text-white/30">(LibreTranslate)</span>
+                                <span class="text-xs text-white/30">(<?= defined('TRANSLATION_PROVIDER') && strtolower(TRANSLATION_PROVIDER) === 'libretranslate' ? 'LibreTranslate' : 'Google Translate' ?>)</span>
                             </label>
                         </div>
                         <?php endif; ?>

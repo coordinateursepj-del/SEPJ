@@ -447,7 +447,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php elseif ($lang === 'fr'): ?>Traduire automatiquement les champs vides
                                 <?php else: ?>Auto-translate empty fields
                                 <?php endif; ?>
-                                <span class="text-xs text-white/30">(LibreTranslate)</span>
+                                <span class="text-xs text-white/30">(<?= defined('TRANSLATION_PROVIDER') && strtolower(TRANSLATION_PROVIDER) === 'libretranslate' ? 'LibreTranslate' : 'Google Translate' ?>)</span>
                             </label>
                         </div>
                         <?php endif; ?>
