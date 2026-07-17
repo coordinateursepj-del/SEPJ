@@ -6,6 +6,7 @@
  */
 require_once dirname(__DIR__) . '/app/config/app.php';
 require_once ROOT_PATH . '/app/core/db.php';
+require_once ROOT_PATH . '/app/core/helpers.php';
 
 header('Content-Type: text/plain; charset=utf-8');
 echo "=== SEPJ cache + DB check ===\n\n";
@@ -72,20 +73,22 @@ try {
     echo "[4] could not read posts: " . $e->getMessage() . "\n";
 }
 
-// 5) Look up a specific slug passed via ?slug= and show its raw fields
+// 5) Look up a specific slug and actually run the SAME resolution page.php uses
 $slugArg = $_GET['slug'] ?? '';
 if ($slugArg !== '') {
     try {
-        $s = db()->prepare("SELECT id, type, slug, video_url, LEFT(video_thumb,40) AS vt, LEFT(featured_image,40) AS fi FROM content_items WHERE slug=:s LIMIT 1");
+        $s = db()->prepare("SELECT id, type, slug, video_url, video_thumb, featured_image, body, body_fr, body_ar, content, content_fr, content_ar FROM content_items WHERE slug=:s LIMIT 1");
         $s->execute(['s' => $slugArg]);
         $row = $s->fetch();
         echo "[5] slug='$slugArg':\n";
         if (!$row) {
             echo "    NOT FOUND\n";
         } else {
-            foreach ($row as $k => $v) {
-                echo "    $k=[" . ($v ?? 'NULL') . "]\n";
-            }
+            $raw = $row['video_url'] ?? '';
+            echo "    raw video_url=[" . $raw . "]\n";
+            echo "    hex len video_url=" . strlen($raw) . "\n";
+            echo "    youtube_embed_url()=[" . var_export(youtube_embed_url($raw), true) . "]\n";
+            echo "    youtube_id_from_url()=[" . var_export(youtube_id_from_url($raw), true) . "]\n";
         }
     } catch (Exception $e) {
         echo "[5] lookup failed: " . $e->getMessage() . "\n";
