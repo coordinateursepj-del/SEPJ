@@ -1167,8 +1167,7 @@ select.form-input option,
     border-right: 2px solid rgba(255,255,255,0.12);
 }
 [dir="rtl"] .footer-link::after {
-    content: '\203A';
-    transform: scaleX(-1);
+    content: '\2039';
 }
 
 [dir="rtl"] .footer-link:hover {
@@ -1176,7 +1175,7 @@ select.form-input option,
     border-right-color: var(--emerald-400);
 }
 [dir="rtl"] .footer-link:hover::after {
-    transform: scaleX(-1) translateX(2px);
+    transform: translateX(-2px);
 }
 
 /* ---------- Responsive ---------- */
