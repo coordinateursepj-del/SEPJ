@@ -107,11 +107,16 @@ require_once 'includes/header.php';
             </div>
 
             <?php
-            $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '');
+            // Use the same resolution order as the (working) Videos page:
+            // explicit video_url first, then fall back to a YouTube link
+            // embedded anywhere in the article body.
+            $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '') ?? youtube_embed_url($body ?? '');
             if ($pageVideoEmbed):
                 $pageVideoThumb = youtube_thumbnail_url(
                     $item['video_url'] ?? '',
-                    !empty($item['video_thumb']) ? upload_url($item['video_thumb']) : null
+                    !empty($item['video_thumb'])
+                        ? upload_url($item['video_thumb'])
+                        : (!empty($item['featured_image']) ? upload_url($item['featured_image']) : null)
                 );
             ?>
             <div class="mt-10">
