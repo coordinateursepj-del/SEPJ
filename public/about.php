@@ -108,12 +108,6 @@ require_once 'includes/header.php';
                                 <?= sanitize_body($dirBody) ?>
                             </div>
                             <?php endif; ?>
-
-                            <!-- Signature -->
-                            <div class="dg-signature">
-                                <span class="dg-sig-name"><?= e($dirName) ?></span>
-                                <span class="dg-sig-role"><?= e($dirRole) ?></span>
-                            </div>
                         </div>
 
                         <!-- Photo column -->
