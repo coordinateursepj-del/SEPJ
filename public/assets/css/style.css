@@ -1168,7 +1168,6 @@ select.form-input option,
 }
 [dir="rtl"] .footer-link::after {
     content: '\203A';
-    order: -1;
     transform: scaleX(-1);
 }
 

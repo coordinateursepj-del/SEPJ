@@ -9,7 +9,7 @@ $lang = $lang ?? current_lang();
 $user = current_user();
 ?>
 <!-- Admin Header -->
-<header class="bg-white/5 backdrop-blur-md border-b border-white/10 px-6 py-3 flex items-center justify-between shrink-0" dir="ltr">
+<header class="bg-white/5 backdrop-blur-md border-b border-white/10 px-6 py-3 flex items-center justify-between shrink-0 relative z-50" dir="ltr">
     <!-- Mobile menu toggle -->
     <button id="sidebarToggle" class="text-white/70 hover:text-white transition-colors lg:hidden">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
