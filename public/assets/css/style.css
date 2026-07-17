@@ -2639,3 +2639,57 @@ body,
     outline: 2px solid var(--brand-bright);
     outline-offset: 2px;
 }
+
+/* ============================================================
+   ADMIN LIGHT MODE — readable overrides
+   The public light-mode remap handles text-white / bg-white / bg-emerald-*,
+   but the admin uses status badges & stat gradients in green/yellow/red/
+   blue/gray that are NOT covered. In light mode those stay light tints and
+   become unreadable, so remap them here to dark, high-contrast variants.
+   ============================================================ */
+[data-theme="light"] .text-green-300,
+[data-theme="light"] .text-green-400   { color: #1F7A45 !important; }
+[data-theme="light"] .text-yellow-300,
+[data-theme="light"] .text-yellow-400  { color: #B7791F !important; }
+[data-theme="light"] .text-red-300,
+[data-theme="light"] .text-red-400     { color: #C0392B !important; }
+[data-theme="light"] .text-blue-300,
+[data-theme="light"] .text-blue-400    { color: #2563EB !important; }
+[data-theme="light"] .text-gray-300    { color: #4B5563 !important; }
+
+[data-theme="light"] .bg-green-500\/20   { background-color: rgba(31, 122, 69, 0.14)  !important; }
+[data-theme="light"] .bg-yellow-500\/20  { background-color: rgba(183, 121, 31, 0.16) !important; }
+[data-theme="light"] .bg-red-500\/20     { background-color: rgba(192, 57, 43, 0.14)  !important; }
+[data-theme="light"] .bg-blue-500\/20    { background-color: rgba(37, 99, 235, 0.12)  !important; }
+[data-theme="light"] .bg-gray-500\/20    { background-color: rgba(75, 85, 99, 0.14)   !important; }
+
+[data-theme="light"] .border-green-500\/30 { border-color: rgba(31, 122, 69, 0.35)  !important; }
+[data-theme="light"] .border-red-500\/30   { border-color: rgba(192, 57, 43, 0.35)  !important; }
+[data-theme="light"] .border-red-500\/50   { border-color: rgba(192, 57, 43, 0.45)  !important; }
+
+/* Stat card brand gradients — keep them vivid but readable on light paper */
+[data-theme="light"] .from-emerald-500.to-green-600 { background-image: linear-gradient(135deg, #1F7A45, #2E9E5B) !important; }
+[data-theme="light"] .from-blue-500.to-cyan-600     { background-image: linear-gradient(135deg, #2563EB, #0891B2) !important; }
+[data-theme="light"] .from-purple-500.to-violet-600 { background-image: linear-gradient(135deg, #7C3AED, #6D28D9) !important; }
+[data-theme="light"] .from-amber-500.to-orange-600  { background-image: linear-gradient(135deg, #D97706, #EA580C) !important; }
+[data-theme="light"] .from-pink-500.to-rose-600     { background-image: linear-gradient(135deg, #DB2777, #E11D48) !important; }
+[data-theme="light"] .from-red-500.to-pink-600      { background-image: linear-gradient(135deg, #DC2626, #DB2777) !important; }
+
+/* Form inputs: ensure legible text + visible borders in light mode */
+[data-theme="light"] .form-input {
+    background-color: #FFFFFF !important;
+    color: #14261E !important;
+    border: 1px solid rgba(20, 52, 42, 0.18) !important;
+}
+[data-theme="light"] .form-input::placeholder { color: #7C8C81 !important; }
+[data-theme="light"] .form-input:focus {
+    border-color: var(--brand) !important;
+    box-shadow: 0 0 0 3px rgba(31, 92, 67, 0.15) !important;
+}
+
+/* Sidebar / header borders read as hairlines on light paper */
+[data-theme="light"] .border-white\/10 { border-color: rgba(20, 52, 42, 0.10) !important; }
+[data-theme="light"] .border-white\/20 { border-color: rgba(20, 52, 42, 0.16) !important; }
+
+/* Tables: row hover + divider stay subtle on light */
+[data-theme="light"] .hover\:bg-white\/5:hover { background-color: var(--brand-soft) !important; }

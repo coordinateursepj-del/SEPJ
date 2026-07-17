@@ -16,17 +16,18 @@ require_login();
 
 $lang = current_lang();
 $id = (int)($_GET['id'] ?? 0);
+$reqType = validate_type($_GET['type'] ?? '') ? $_GET['type'] : 'post';
 
 // CSRF protection for delete action (previously GET-only)
 $token = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '';
 if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
     set_flash('error', $lang === 'ar' ? 'طلب غير صالح.' : ($lang === 'fr' ? 'Requête invalide.' : 'Invalid request.'));
-    redirect('index.php?type=post');
+    redirect('index.php?type=' . $reqType);
 }
 
 if (!$id) {
     set_flash('error', $lang === 'ar' ? 'معرف غير صالح.' : ($lang === 'fr' ? 'ID invalide.' : 'Invalid ID.'));
-    redirect('index.php');
+    redirect('index.php?type=' . $reqType);
 }
 
 try {
@@ -37,7 +38,7 @@ try {
     
     if (!$item) {
         set_flash('error', $lang === 'ar' ? 'العنصر غير موجود.' : ($lang === 'fr' ? 'Élément introuvable.' : 'Item not found.'));
-        redirect('index.php');
+        redirect('index.php?type=' . $reqType);
     }
     
     $type = $item['type'];
