@@ -188,12 +188,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <option value="" disabled <?= empty($values['service_id']) ? 'selected' : '' ?>>
                                     <?= $svcPh ?>
                                 </option>
-                                <?php foreach ($services as $svc): ?>
-                                <option value="<?= (int)$svc['id'] ?>"
-                                    <?= (int)$values['service_id'] === (int)$svc['id'] ? 'selected' : '' ?>>
-                                    <?= e($svc['display_name']) ?>
-                                </option>
+                                <?php
+                                $catLabels = contact_service_category_labels($lang);
+                                $currentCat = null;
+                                foreach ($services as $svc):
+                                    $cat = $svc['category'] ?? '';
+                                    if ($cat !== $currentCat):
+                                        if ($currentCat !== null) echo '</optgroup>';
+                                        $currentCat = $cat;
+                                ?>
+                                <optgroup label="<?= e($catLabels[$cat] ?? $cat) ?>">
+                                <?php endif; ?>
+                                    <option value="<?= (int)$svc['id'] ?>"
+                                        <?= (int)$values['service_id'] === (int)$svc['id'] ? 'selected' : '' ?>>
+                                        <?= e($svc['display_name']) ?>
+                                    </option>
                                 <?php endforeach; ?>
+                                <?php if ($currentCat !== null) echo '</optgroup>'; ?>
                             </select>
                         </div>
                         <div>

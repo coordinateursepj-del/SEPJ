@@ -114,11 +114,12 @@ function get_contact_services(string $lang = 'fr'): array
                    display_name_ar,
                    display_name_en,
                    email,
+                   category,
                    cc_executives
             FROM   contact_services
             WHERE  is_executive = 0
               AND  is_active    = 1
-            ORDER  BY sort_order ASC, display_name_fr ASC
+            ORDER  BY category ASC, sort_order ASC, display_name_fr ASC
         ");
         $stmt->execute();
         $out = [];
@@ -130,6 +131,19 @@ function get_contact_services(string $lang = 'fr'): array
         error_log('get_contact_services: ' . $e->getMessage());
         return [];
     }
+}
+
+/**
+ * Localized labels for the dropdown category groups.
+ */
+function contact_service_category_labels(string $lang): array
+{
+    return [
+        'general' => $lang === 'ar' ? 'مصالح الإدارة العامة'
+                   : ($lang === 'fr' ? 'Services de l\'administration générale' : 'General Administration Departments'),
+        'sub'     => $lang === 'ar' ? 'الإدارات الفرعية للشركة'
+                   : ($lang === 'fr' ? 'Directions régionales' : 'Company Sub-Directorates'),
+    ];
 }
 
 /**
