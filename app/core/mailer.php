@@ -106,6 +106,27 @@ function get_contact_services(string $lang = 'fr'): array
 {
     $col = in_array($lang, ['ar', 'en']) ? "display_name_{$lang}" : 'display_name_fr';
 
+    // Detect whether the 'category' column exists (older DBs don't have it yet).
+    static $hasCategory = null;
+    if ($hasCategory === null) {
+        try {
+            $chk = db()->query("
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'contact_services'
+                  AND COLUMN_NAME = 'category'
+                LIMIT 1
+            ");
+            $hasCategory = (bool) $chk->fetchColumn();
+        } catch (PDOException $e) {
+            $hasCategory = false;
+        }
+    }
+
+    $catCol = $hasCategory ? 'category,' : '';
+    $order  = $hasCategory ? 'category ASC, sort_order ASC, display_name_fr ASC'
+                           : 'sort_order ASC, display_name_fr ASC';
+
     try {
         $stmt = db()->prepare("
             SELECT id,
@@ -114,16 +135,19 @@ function get_contact_services(string $lang = 'fr'): array
                    display_name_ar,
                    display_name_en,
                    email,
-                   category,
+                   {$catCol}
                    cc_executives
             FROM   contact_services
             WHERE  is_executive = 0
               AND  is_active    = 1
-            ORDER  BY category ASC, sort_order ASC, display_name_fr ASC
+            ORDER  BY {$order}
         ");
         $stmt->execute();
         $out = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            if (!isset($r['category'])) {
+                $r['category'] = '';
+            }
             $out[(int)$r['id']] = $r;
         }
         return $out;
