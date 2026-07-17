@@ -109,7 +109,10 @@ require_once 'includes/header.php';
             <?php
             $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '');
             if ($pageVideoEmbed):
-                $pageVideoThumb = youtube_thumbnail_url($item['video_url'] ?? '', !empty($item['featured_image']) ? upload_url($item['featured_image']) : null);
+                $pageVideoThumb = youtube_thumbnail_url(
+                    $item['video_url'] ?? '',
+                    !empty($item['video_thumb']) ? upload_url($item['video_thumb']) : null
+                );
             ?>
             <div class="mt-10">
                 <h2 class="section-title"><?= __('video_section_label', $lang) ?></h2>

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initLanguageTabs();
     initSearchFilters();
     initGalleryPicker();
+    initVideoThumbUpload();
 });
 
 /**
@@ -411,8 +412,75 @@ function initGalleryPicker() {
 }
 
 /**
- * Bulk action confirmation
+ * Custom video thumbnail upload (posts/news) — single image, stored in
+ * video_thumb_path and shown with a remove button. Reuses ajax_upload.php.
  */
+function initVideoThumbUpload() {
+    const input = document.getElementById('videoThumbInput');
+    if (!input) return;
+
+    const preview = document.getElementById('videoThumbPreview');
+    const pathField = document.getElementById('videoThumbPath');
+    const removeBtn = document.getElementById('videoThumbRemove');
+    const uploadingLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.uploading) ? SEPJ_LABELS.uploading : 'Uploading…';
+    const errorLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.uploadError) ? SEPJ_LABELS.uploadError : 'Upload failed';
+    const contentId = parseInt(input.dataset.contentId) || 0;
+    const csrf = (typeof SEPJ_CSRF !== 'undefined' ? SEPJ_CSRF : '');
+
+    function showPreview(path, url) {
+        pathField.value = path;
+        preview.classList.remove('hidden');
+        preview.innerHTML =
+            '<div class="relative inline-block">' +
+                '<img src="' + url + '" alt="" class="w-40 rounded-lg object-cover">' +
+                '<button type="button" id="videoThumbRemove" class="absolute -top-2 -right-2 text-xs text-red-400 bg-black/50 rounded-full px-2 py-1">✕</button>' +
+            '</div>';
+        wireRemove();
+    }
+
+    function wireRemove() {
+        const btn = document.getElementById('videoThumbRemove');
+        if (btn) btn.addEventListener('click', function () {
+            pathField.value = '';
+            preview.classList.add('hidden');
+            preview.innerHTML = '';
+            input.value = '';
+        });
+    }
+
+    wireRemove();
+
+    input.addEventListener('change', function () {
+        const file = this.files && this.files[0];
+        if (!file) return;
+        preview.classList.remove('hidden');
+        preview.innerHTML = '<div class="text-xs text-emerald-300">' + uploadingLabel + '</div>';
+
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('content_id', contentId);
+        fd.append('subdir', 'content');
+        fd.append('csrf_token', csrf);
+
+        fetch('ajax_upload.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(r => r.text())
+            .then(text => {
+                let data = null;
+                try { data = JSON.parse(text); } catch (e) { data = null; }
+                if (data && data.success) {
+                    showPreview(data.path, data.url);
+                } else {
+                    preview.innerHTML = '<div class="text-xs text-red-300">' + errorLabel + '<br>' + ((data && data.message) || '') + '</div>';
+                }
+            })
+            .catch(e => {
+                preview.innerHTML = '<div class="text-xs text-red-300">' + errorLabel + '</div>';
+            });
+        this.value = '';
+    });
+}
+
+
 function confirmBulkAction(action) {
     const message = {
         delete: 'Are you sure you want to delete selected items?'

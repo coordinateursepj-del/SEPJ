@@ -62,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $item['published_at'] = $_POST['published_at'] ?? date('Y-m-d H:i:s');
     $item['rse_category'] = trim($_POST['rse_category'] ?? '');
     $item['video_url'] = trim($_POST['video_url'] ?? '');
+    $item['video_thumb'] = trim($_POST['video_thumb_path'] ?? '');
     $auto_translate = isset($_POST['auto_translate']);
 
     // Validate
@@ -147,8 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             $stmt = db()->prepare("
-                INSERT INTO content_items (type, rse_category, slug, title_ar, title_fr, title_en, summary_ar, summary_fr, summary_en, body_ar, body_fr, body_en, featured_image, video_url, status, is_featured, published_at, created_by, created_at, updated_at)
-                VALUES (:type, :rse_category, :slug, :title_ar, :title_fr, :title_en, :summary_ar, :summary_fr, :summary_en, :body_ar, :body_fr, :body_en, :featured_image, :video_url, :status, :is_featured, :published_at, :created_by, NOW(), NOW())
+                INSERT INTO content_items (type, rse_category, slug, title_ar, title_fr, title_en, summary_ar, summary_fr, summary_en, body_ar, body_fr, body_en, featured_image, video_url, video_thumb, status, is_featured, published_at, created_by, created_at, updated_at)
+                VALUES (:type, :rse_category, :slug, :title_ar, :title_fr, :title_en, :summary_ar, :summary_fr, :summary_en, :body_ar, :body_fr, :body_en, :featured_image, :video_url, :video_thumb, :status, :is_featured, :published_at, :created_by, NOW(), NOW())
             ");
             $stmt->execute([
                 'type' => $type,
@@ -165,6 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'body_en' => $item['body_en'],
                 'featured_image' => $item['featured_image'],
                 'video_url' => $item['video_url'] ?: null,
+                'video_thumb' => $item['video_thumb'] !== '' ? $item['video_thumb'] : null,
                 'status' => $item['status'],
                 'is_featured' => $item['is_featured'],
                 'published_at' => $item['status'] === 'published' ? $item['published_at'] : null,
@@ -403,6 +405,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?= __('attach_video_help', $lang) ?>
                         </p>
+
+                        <label class="block text-sm font-medium text-emerald-200 mb-2 mt-4">
+                            <?= __('video_thumbnail', $lang) ?>
+                        </label>
+                        <input type="file" id="videoThumbInput" accept="image/jpeg,image/png,image/webp"
+                               data-content-id="0" data-mode="create"
+                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <p class="text-xs text-emerald-300/40 mt-1">
+                            <?= __('video_thumbnail_help', $lang) ?>
+                        </p>
+                        <div id="videoThumbPreview" class="mt-3 <?= !empty($item['video_thumb']) ? '' : 'hidden' ?>">
+                            <?php if (!empty($item['video_thumb'])): ?>
+                            <div class="relative inline-block">
+                                <img src="<?= e(upload_url($item['video_thumb'])) ?>" alt="" class="w-40 rounded-lg object-cover">
+                                <button type="button" id="videoThumbRemove" class="absolute -top-2 -right-2 text-xs text-red-400 bg-black/50 rounded-full px-2 py-1">✕</button>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <input type="hidden" name="video_thumb_path" id="videoThumbPath" value="<?= e($item['video_thumb']) ?>">
                     </div>
                     <?php endif; ?>
 

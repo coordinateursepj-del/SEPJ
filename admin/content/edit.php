@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $item['published_at'] = $_POST['published_at'] ?? $item['published_at'];
     $item['rse_category'] = trim($_POST['rse_category'] ?? $item['rse_category'] ?? '');
     $item['video_url'] = trim($_POST['video_url'] ?? $item['video_url'] ?? '');
+    $item['video_thumb'] = trim($_POST['video_thumb_path'] ?? $item['video_thumb'] ?? '');
     $auto_translate = isset($_POST['auto_translate']);
 
     if (empty($item['title_ar']) && empty($item['title_fr']) && empty($item['title_en'])) {
@@ -174,6 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     body_ar = :body_ar, body_fr = :body_fr, body_en = :body_en,
                     featured_image = :featured_image,
                     video_url = :video_url,
+                    video_thumb = :video_thumb,
                     status = :status,
                     is_featured = :is_featured,
                     published_at = :published_at,
@@ -195,6 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'body_en' => $item['body_en'],
                 'featured_image' => $item['featured_image'],
                 'video_url' => $item['video_url'] ?: null,
+                'video_thumb' => $item['video_thumb'] !== '' ? $item['video_thumb'] : null,
                 'status' => $item['status'],
                 'is_featured' => $item['is_featured'],
                 'published_at' => $item['status'] === 'published' ? $item['published_at'] : null,
@@ -450,6 +453,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?= __('attach_video_help', $lang) ?>
                         </p>
+
+                        <label class="block text-sm font-medium text-emerald-200 mb-2 mt-4">
+                            <?= __('video_thumbnail', $lang) ?>
+                        </label>
+                        <input type="file" id="videoThumbInput" accept="image/jpeg,image/png,image/webp"
+                               data-content-id="<?= $id ?>" data-mode="edit"
+                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <p class="text-xs text-emerald-300/40 mt-1">
+                            <?= __('video_thumbnail_help', $lang) ?>
+                        </p>
+                        <div id="videoThumbPreview" class="mt-3 <?= !empty($item['video_thumb']) ? '' : 'hidden' ?>">
+                            <?php if (!empty($item['video_thumb'])): ?>
+                            <div class="relative inline-block">
+                                <img src="<?= e(upload_url($item['video_thumb'])) ?>" alt="" class="w-40 rounded-lg object-cover">
+                                <button type="button" id="videoThumbRemove" class="absolute -top-2 -right-2 text-xs text-red-400 bg-black/50 rounded-full px-2 py-1">✕</button>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <input type="hidden" name="video_thumb_path" id="videoThumbPath" value="<?= e($item['video_thumb'] ?? '') ?>">
                     </div>
                     <?php endif; ?>
 
