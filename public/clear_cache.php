@@ -54,4 +54,24 @@ try {
     echo "[4] could not read posts: " . $e->getMessage() . "\n";
 }
 
+// 5) Look up a specific slug passed via ?slug= and show its raw fields
+$slugArg = $_GET['slug'] ?? '';
+if ($slugArg !== '') {
+    try {
+        $s = db()->prepare("SELECT id, type, slug, video_url, LEFT(video_thumb,40) AS vt, LEFT(featured_image,40) AS fi, LEFT(body,80) AS body80 FROM content_items WHERE slug=:s LIMIT 1");
+        $s->execute(['s' => $slugArg]);
+        $row = $s->fetch();
+        echo "[5] slug='$slugArg':\n";
+        if (!$row) {
+            echo "    NOT FOUND\n";
+        } else {
+            foreach ($row as $k => $v) {
+                echo "    $k=[" . ($v ?? 'NULL') . "]\n";
+            }
+        }
+    } catch (Exception $e) {
+        echo "[5] lookup failed: " . $e->getMessage() . "\n";
+    }
+}
+
 echo "\nDone. Reload the article page now.\n";
