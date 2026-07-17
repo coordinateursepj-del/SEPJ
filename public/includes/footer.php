@@ -44,7 +44,7 @@ $lang = current_lang();
         </div>
         <div class="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-emerald-300/40">
             <?php if ($lang === 'ar'): ?>
-                <p>&copy; <?= date('Y') ?> <?= e(APP_NAME) ?>. شركة البيئة الغراسة والبستنة بقابس. <?= __('all_rights_reserved', $lang) ?></p>
+                <p>&copy; <?= date('Y') ?> شركة البيئة الغراسة والبستنة بقابس. <?= __('all_rights_reserved', $lang) ?></p>
             <?php else: ?>
                 <p>&copy; <?= date('Y') ?> <?= e(APP_NAME) ?>. <?= __('all_rights_reserved', $lang) ?></p>
             <?php endif; ?>
