@@ -107,6 +107,7 @@ require_once 'includes/header.php';
             </div>
 
             <?php
+            // BUILDMARKER:videoblock-v3
             // Use the same resolution order as the (working) Videos page:
             // explicit video_url first, then fall back to a YouTube link
             // embedded anywhere in the article body.
