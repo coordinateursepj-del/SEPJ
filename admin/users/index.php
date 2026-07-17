@@ -79,8 +79,8 @@ if(isset($_GET['delete']) && isset($_GET['csrf_token'])){
 $users=db()->query("SELECT id,name,email,role,status,created_at FROM users ORDER BY created_at DESC")->fetchAll();
 $editUser=null;if(isset($_GET['edit'])){$s=db()->prepare("SELECT * FROM users WHERE id=:id");$s->execute(['id'=>(int)$_GET['edit']]);$editUser=$s->fetch();}
 ?>
-<!DOCTYPE html><html lang="<?=e($lang)?>" dir="<?=dir_attribute($lang)?>"><head><meta charset="UTF-8"><title><?=$lang==='ar'?'المستخدمون':'Users'?> - <?=e(APP_NAME)?></title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="../../public/assets/css/style.css"></head>
-<body class="bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 min-h-screen"><div class="blob blob-1"></div><div class="blob blob-2"></div>
+<!DOCTYPE html><html lang="<?=e($lang)?>" dir="<?=dir_attribute($lang)?>" data-theme="light"><head><meta charset="UTF-8"><title><?=$lang==='ar'?'المستخدمون':'Users'?> - <?=e(APP_NAME)?></title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="../../public/assets/css/style.css"></head>
+<body class="admin-theme-bg min-h-screen"><div class="blob blob-1"></div><div class="blob blob-2"></div>
 <div class="relative z-10 flex h-screen"><?php include '../includes/sidebar.php';?><div class="flex-1 flex flex-col overflow-hidden"><?php include '../includes/header.php';?>
 <main class="flex-1 overflow-y-auto p-6"><h1 class="text-2xl font-bold text-white mb-6">👥 <?=$lang==='ar'?'المستخدمون':($lang==='fr'?'Utilisateurs':'Users')?></h1>
 <?php $flash=get_flash();if($flash):?><div class="mb-4 p-4 rounded-lg bg-emerald-600/30 border border-emerald-500/30 text-emerald-300"><?=e($flash['message'])?></div><?php endif;?>

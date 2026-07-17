@@ -108,13 +108,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    if (count($uploadedPaths) > MAX_GALLERY_IMAGES) {
+    $typeMax = $type === 'video' ? 1 : MAX_GALLERY_IMAGES;
+    if (count($uploadedPaths) > $typeMax) {
         $errors[] = $lang === 'ar'
-            ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى.'
+            ? 'يمكن رفع حتى ' . $typeMax . ' صورة كحد أقصى.'
             : ($lang === 'fr'
-                ? 'Vous pouvez télécharger un maximum de ' . MAX_GALLERY_IMAGES . ' images.'
-                : 'You can upload a maximum of ' . MAX_GALLERY_IMAGES . ' images.');
-        $uploadedPaths = array_slice($uploadedPaths, 0, MAX_GALLERY_IMAGES);
+                ? 'Vous pouvez télécharger un maximum de ' . $typeMax . ' images.'
+                : 'You can upload a maximum of ' . $typeMax . ' images.');
+        $uploadedPaths = array_slice($uploadedPaths, 0, $typeMax);
     }
 
     // Cover: either an existing media id (cover_media_id) or a newly uploaded path
@@ -204,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>">
+<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -212,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../public/assets/css/style.css">
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 min-h-screen">
+<body class="admin-theme-bg min-h-screen">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     
@@ -332,12 +333,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     
                     <!-- Gallery Images + Cover (uploaded individually via AJAX) -->
+                    <?php if ($type === 'video'): ?>
                     <div class="glass-card-static p-4">
                         <label class="block text-sm font-medium text-emerald-200 mb-2">
-                            <?php if ($lang === 'ar'): ?>صور المقال (حتى <?= MAX_GALLERY_IMAGES ?> صورة)
-                            <?php elseif ($lang === 'fr'): ?>Images de l'article (max <?= MAX_GALLERY_IMAGES ?>)
-                            <?php else: ?>Article Images (up to <?= MAX_GALLERY_IMAGES ?>)
-                            <?php endif; ?>
+                            <?= __('video_thumbnail', $lang) ?>
+                        </label>
+                        <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp"
+                               data-max="1" data-content-id="0" data-mode="create"
+                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <p class="text-xs text-emerald-300/40 mt-1">
+                            <?= __('video_thumbnail_help', $lang) ?>
+                        </p>
+                        <div id="galleryPreview" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-3"></div>
+                        <p id="galleryCount" class="text-xs text-emerald-400 mt-2"></p>
+                        <!-- Holds AJAX-uploaded media ids + cover, posted on save -->
+                        <div id="galleryFields"></div>
+                    </div>
+                    <?php else: ?>
+                    <div class="glass-card-static p-4">
+                        <label class="block text-sm font-medium text-emerald-200 mb-2">
+                            <?= __('article_images', $lang) ?> (<?= $lang === 'ar' ? 'حتى ' . MAX_GALLERY_IMAGES . ' صورة' : ($lang === 'fr' ? 'max ' . MAX_GALLERY_IMAGES : 'up to ' . MAX_GALLERY_IMAGES) ?>)
                         </label>
                         <input type="file" id="galleryInput" multiple accept="image/jpeg,image/png,image/webp"
                                data-max="<?= MAX_GALLERY_IMAGES ?>" data-content-id="0" data-mode="create"
@@ -353,6 +368,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <!-- Holds AJAX-uploaded media ids + cover, posted on save -->
                         <div id="galleryFields"></div>
                     </div>
+                    <?php endif; ?>
                     
                     <!-- Video URL (only for Video type) -->
                     <?php if ($type === 'video'): ?>
@@ -371,6 +387,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php elseif ($lang === 'fr'): ?>Accepte tous les formats de lien YouTube : youtube.com/watch?v=…, youtu.be/… ou embed/…
                             <?php else: ?>Accepts any YouTube link format: youtube.com/watch?v=…, youtu.be/…, or embed/…
                             <?php endif; ?>
+                        </p>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Optional YouTube video (for Posts/News, shown in the article) -->
+                    <?php if ($type === 'post'): ?>
+                    <div class="glass-card-static p-4">
+                        <label class="block text-sm font-medium text-emerald-200 mb-2">
+                            <?= __('video_section_label', $lang) ?>
+                        </label>
+                        <input type="text" name="video_url" value="<?= e($item['video_url']) ?>" dir="ltr"
+                               class="form-input font-mono text-sm"
+                               placeholder="https://www.youtube.com/watch?v=...">
+                        <p class="text-xs text-emerald-300/40 mt-1">
+                            <?= __('attach_video_help', $lang) ?>
                         </p>
                     </div>
                     <?php endif; ?>

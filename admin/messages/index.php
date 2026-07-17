@@ -19,8 +19,8 @@ $stmt->bindValue(':l',$per,PDO::PARAM_INT); $stmt->bindValue(':o',$off,PDO::PARA
 foreach($p as $k=>$v)$stmt->bindValue(":$k",$v);
 $stmt->execute(); $items = $stmt->fetchAll();
 ?>
-<!DOCTYPE html><html lang="<?=e($lang)?>" dir="<?=dir_attribute($lang)?>"><head><meta charset="UTF-8"><title><?=$lang==='ar'?'الرسائل':'Messages'?> - <?=e(APP_NAME)?></title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="../../public/assets/css/style.css"></head>
-<body class="bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 min-h-screen"><div class="blob blob-1"></div><div class="blob blob-2"></div>
+<!DOCTYPE html><html lang="<?=e($lang)?>" dir="<?=dir_attribute($lang)?>" data-theme="light"><head><meta charset="UTF-8"><title><?=$lang==='ar'?'الرسائل':'Messages'?> - <?=e(APP_NAME)?></title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="../../public/assets/css/style.css"></head>
+<body class="admin-theme-bg min-h-screen"><div class="blob blob-1"></div><div class="blob blob-2"></div>
 <div class="relative z-10 flex h-screen"><?php include '../includes/sidebar.php';?><div class="flex-1 flex flex-col overflow-hidden"><?php include '../includes/header.php';?>
 <main class="flex-1 overflow-y-auto p-6"><div class="flex items-center justify-between mb-6 flex-wrap gap-2"><h1 class="text-2xl font-bold text-white">✉️ <?=$lang==='ar'?'الرسائل':($lang==='fr'?'Messages':'Messages')?></h1>
 <a href="mail-log.php" class="glass-btn text-sm">📨 <?=$lang==='ar'?'سجل إرسال البريد':($lang==='fr'?"Journal d'envoi":'Mail log')?></a></div>

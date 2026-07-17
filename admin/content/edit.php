@@ -117,13 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("Edit content media count error: " . $e->getMessage());
         $totalCount = 0;
     }
-    if (($totalCount + count($uploadedPaths)) > MAX_GALLERY_IMAGES) {
+    $typeMax = $type === 'video' ? 1 : MAX_GALLERY_IMAGES;
+    if (($totalCount + count($uploadedPaths)) > $typeMax) {
         $errors[] = $lang === 'ar'
-            ? 'يمكن رفع حتى ' . MAX_GALLERY_IMAGES . ' صورة كحد أقصى (لديك حالياً ' . $totalCount . ').'
+            ? 'يمكن رفع حتى ' . $typeMax . ' صورة كحد أقصى (لديك حالياً ' . $totalCount . ').'
             : ($lang === 'fr'
-                ? 'Maximum ' . MAX_GALLERY_IMAGES . ' images (vous en avez déjà ' . $totalCount . ').'
-                : 'Maximum ' . MAX_GALLERY_IMAGES . ' images (you already have ' . $totalCount . ').');
-        $uploadedPaths = array_slice($uploadedPaths, 0, MAX_GALLERY_IMAGES - $totalCount);
+                ? 'Maximum ' . $typeMax . ' images (vous en avez déjà ' . $totalCount . ').'
+                : 'Maximum ' . $typeMax . ' images (you already have ' . $totalCount . ').');
+        $uploadedPaths = array_slice($uploadedPaths, 0, $typeMax - $totalCount);
     }
 
     // Determine cover: a newly uploaded path (cover_path) or an existing media id
@@ -225,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>">
+<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -233,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../public/assets/css/style.css">
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 min-h-screen">
+<body class="admin-theme-bg min-h-screen">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     
@@ -324,9 +325,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     
+                    <?php if ($type === 'video'): ?>
                     <div class="glass-card-static p-4">
                         <label class="block text-sm font-medium text-emerald-200 mb-2">
-                            <?= $lang === 'ar' ? 'صور المقال (حتى ' . MAX_GALLERY_IMAGES . ' صورة)' : ($lang === 'fr' ? 'Images de l\'article (max ' . MAX_GALLERY_IMAGES . ')' : 'Article Images (up to ' . MAX_GALLERY_IMAGES . ')') ?>
+                            <?= __('video_thumbnail', $lang) ?>
+                        </label>
+                        <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp"
+                               data-max="1" data-content-id="<?= $id ?>" data-mode="edit"
+                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+
+                        <?php
+                        $coverCheckedId = null;
+                        if (!empty($item['featured_image'])) {
+                            foreach ($existingMedia as $m) {
+                                if ($m['file_path'] === $item['featured_image']) { $coverCheckedId = $m['id']; break; }
+                            }
+                        }
+                        ?>
+                        <?php if (!empty($existingMedia)): ?>
+                        <div id="existingGallery" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
+                            <?php foreach ($existingMedia as $m): ?>
+                            <div class="relative glass-card overflow-hidden group" data-media-id="<?= $m['id'] ?>">
+                                <div class="aspect-square overflow-hidden">
+                                    <img src="<?= e(upload_url($m['file_path'])) ?>" alt="" class="w-full h-full object-cover">
+                                </div>
+                                <label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">
+                                    <input type="radio" name="cover_media_id" value="<?= $m['id'] ?>" <?= $m['id'] === $coverCheckedId ? 'checked' : '' ?>>
+                                    <?= $lang === 'ar' ? 'غلاف' : ($lang === 'fr' ? 'Couverture' : 'Cover') ?>
+                                </label>
+                                <a href="../media/delete.php?id=<?= $m['id'] ?>&return=content&content_id=<?= $id ?>&csrf_token=<?= csrf_token() ?>"
+                                   class="absolute top-1 right-1 text-xs text-red-400 hover:text-red-300 bg-black/40 rounded p-1"
+                                   onclick="return confirm('<?= $lang === 'ar' ? 'حذف هذه الصورة؟' : ($lang === 'fr' ? 'Supprimer cette image ?' : 'Delete this image?') ?>')">🗑️</a>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                            <p class="text-xs text-emerald-300/40 mt-3 mb-3"><?= $lang === 'ar' ? 'لا توجد صورة مصغرة بعد.' : ($lang === 'fr' ? 'Aucune vignette.' : 'No thumbnail yet.') ?></p>
+                        <?php endif; ?>
+
+                        <p class="text-xs text-emerald-300/40 mt-1">
+                            <?= __('video_thumbnail_help', $lang) ?>
+                        </p>
+                        <div id="galleryPreview" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-3"></div>
+                        <p id="galleryCount" class="text-xs text-emerald-400 mt-2"></p>
+                        <!-- Holds AJAX-uploaded image paths; cover path posted as cover_path -->
+                        <div id="galleryFields"></div>
+                    </div>
+                    <?php else: ?>
+                    <div class="glass-card-static p-4">
+                        <label class="block text-sm font-medium text-emerald-200 mb-2">
+                            <?= __('article_images', $lang) ?> (<?= $lang === 'ar' ? 'حتى ' . MAX_GALLERY_IMAGES . ' صورة' : ($lang === 'fr' ? 'max ' . MAX_GALLERY_IMAGES : 'up to ' . MAX_GALLERY_IMAGES) ?>)
                         </label>
 
                         <?php
@@ -373,6 +421,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <!-- Holds AJAX-uploaded image paths; cover path posted as cover_path -->
                         <div id="galleryFields"></div>
                     </div>
+                    <?php endif; ?>
                     
                     <!-- Video URL (only for Video type) -->
                     <?php if ($type === 'video'): ?>
@@ -385,6 +434,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                placeholder="https://www.youtube.com/watch?v=...">
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?= $lang === 'ar' ? 'يقبل جميع صيغ روابط YouTube: youtube.com/watch?v=… أو youtu.be/… أو embed/…' : ($lang === 'fr' ? 'Accepte tous les formats de lien YouTube : youtube.com/watch?v=…, youtu.be/… ou embed/…' : 'Accepts any YouTube link format: youtube.com/watch?v=…, youtu.be/…, or embed/…') ?>
+                        </p>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Optional YouTube video (for Posts/News, shown in the article) -->
+                    <?php if ($type === 'post'): ?>
+                    <div class="glass-card-static p-4">
+                        <label class="block text-sm font-medium text-emerald-200 mb-2">
+                            <?= __('video_section_label', $lang) ?>
+                        </label>
+                        <input type="text" name="video_url" value="<?= e($item['video_url'] ?? '') ?>" dir="ltr"
+                               class="form-input font-mono text-sm"
+                               placeholder="https://www.youtube.com/watch?v=...">
+                        <p class="text-xs text-emerald-300/40 mt-1">
+                            <?= __('attach_video_help', $lang) ?>
                         </p>
                     </div>
                     <?php endif; ?>

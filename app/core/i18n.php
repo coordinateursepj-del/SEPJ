@@ -317,5 +317,37 @@ function get_translations(): array
             'fr' => 'Nouveaux messages',
             'en' => 'New messages',
         ],
+
+        // Content / media labels
+        'video_thumbnail' => [
+            'ar' => 'صورة مصغرة مخصصة للفيديو',
+            'fr' => 'Vignette personnalisée pour la vidéo',
+            'en' => 'Custom thumbnail for your video',
+        ],
+        'video_thumbnail_help' => [
+            'ar' => 'ارفع صورة واحدة فقط تُستخدم كغلاف لليوتيوب. إن لم ترفع صورة، سيتم جلب الصورة المصغرة تلقائياً من يوتيوب.',
+            'fr' => 'Téléchargez une seule image utilisée comme vignette YouTube. Si vous n\'en mettez pas, la miniature sera récupérée automatiquement depuis YouTube.',
+            'en' => 'Upload a single image used as the YouTube thumbnail. If you leave it empty, the thumbnail is fetched automatically from YouTube.',
+        ],
+        'article_images' => [
+            'ar' => 'صور المقال',
+            'fr' => 'Images de l\'article',
+            'en' => 'Article images',
+        ],
+        'video_section_label' => [
+            'ar' => 'فيديو يوتيوب (اختياري)',
+            'fr' => 'Vidéo YouTube (optionnel)',
+            'en' => 'YouTube video (optional)',
+        ],
+        'attach_video_help' => [
+            'ar' => 'أضف رابط يوتيوب لعرض الفيديو تحت المقال وفوق الصور.',
+            'fr' => 'Ajoutez un lien YouTube pour afficher la vidéo sous l\'article et au-dessus des photos.',
+            'en' => 'Add a YouTube link to show the video below the article and above the photos.',
+        ],
+        'watch_video' => [
+            'ar' => 'شاهد الفيديو',
+            'fr' => 'Regarder la vidéo',
+            'en' => 'Watch video',
+        ],
     ];
 }

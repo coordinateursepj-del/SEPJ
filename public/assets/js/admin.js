@@ -5,6 +5,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    initAdminTheme();
     initSidebarToggle();
     initSlugSuggestions();
     initImagePreview();
@@ -14,6 +15,40 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchFilters();
     initGalleryPicker();
 });
+
+/**
+ * Admin light/dark theme — defaults to light to match the public site, persisted
+ * in localStorage under the same key the public site uses ('sepj-theme').
+ */
+function initAdminTheme() {
+    const STORAGE_KEY = 'sepj-theme';
+    const btn = document.getElementById('adminThemeToggle');
+    const html = document.documentElement;
+
+    // Apply saved theme immediately (header already defaulted the <html> to light).
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'dark') {
+        html.setAttribute('data-theme', 'dark');
+    } else {
+        html.setAttribute('data-theme', 'light');
+    }
+    syncToggle();
+
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem(STORAGE_KEY, next);
+        syncToggle();
+    });
+
+    function syncToggle() {
+        if (!btn) return;
+        const isLight = html.getAttribute('data-theme') !== 'dark';
+        btn.setAttribute('aria-checked', isLight ? 'false' : 'true');
+    }
+}
 
 /**
  * Admin sidebar mobile toggle (moved from inline script in sidebar.php)

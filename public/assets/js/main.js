@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initLazyImages();
     initContactForm();
     initThemeToggle();
+    initVideoThumbnails();
     initStatCounters();
     initCursorFX();
     initCardSpotlight();
@@ -600,5 +601,28 @@ function initCardSpotlight() {
             card.style.setProperty('--spot-x', ((e.clientX - rect.left) / rect.width) * 100 + '%');
             card.style.setProperty('--spot-y', ((e.clientY - rect.top) / rect.height) * 100 + '%');
         }, { passive: true });
+    });
+}
+
+/* ─────────────────────────────────────────────
+   Video thumbnails — click the red play button
+   to swap the thumbnail for the YouTube iframe.
+   ───────────────────────────────────────────── */
+function initVideoThumbnails() {
+    const thumbs = document.querySelectorAll('.video-thumb');
+    thumbs.forEach(box => {
+        const embed = box.dataset.embed;
+        if (!embed) return;
+
+        function play() {
+            box.innerHTML = '<iframe src="' + embed + '?autoplay=1&rel=0" class="w-full h-full" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="YouTube video"></iframe>';
+        }
+
+        box.setAttribute('role', 'button');
+        box.setAttribute('tabindex', '0');
+        box.addEventListener('click', play);
+        box.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); }
+        });
     });
 }

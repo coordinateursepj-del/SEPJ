@@ -79,7 +79,7 @@ $statsCards = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>">
+<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -87,7 +87,7 @@ $statsCards = [
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../public/assets/css/style.css">
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 min-h-screen">
+<body class="admin-theme-bg min-h-screen">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     

@@ -218,6 +218,23 @@ function youtube_embed_url(string $url): ?string
 }
 
 /**
+ * Build the YouTube thumbnail URL for a video.
+ *
+ * @param string      $url           Any YouTube link (or the raw id).
+ * @param string|null $customImage   A custom uploaded thumbnail path (upload_url
+ *                                    already applied, or null). If provided it wins.
+ * @return string|null The thumbnail URL, or null if no valid video id.
+ */
+function youtube_thumbnail_url(string $url, ?string $customImage = null): ?string
+{
+    if ($customImage !== null && $customImage !== '') {
+        return $customImage;
+    }
+    $id = youtube_id_from_url($url);
+    return $id === null ? null : "https://img.youtube.com/vi/{$id}/hqdefault.jpg";
+}
+
+/**
  * Generate language switching URL while preserving current page and query parameters
  * 
  * @param string $lang The language code to switch to

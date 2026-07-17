@@ -156,6 +156,19 @@ body {
     color: var(--text-strong);
 }
 
+/* Admin pages use this class instead of the old hardcoded dark gradient so the
+   background follows the light/dark theme toggle. Default (light) inherits the
+   warm-paper body rule below; dark restores the original forest-night gradient. */
+.admin-theme-bg[data-theme="dark"] {
+    background-color: #0b1712;
+    background-image: linear-gradient(135deg, #0b1712 0%, #123524 50%, #0b1712 100%);
+}
+.admin-theme-bg:not([data-theme]),
+.admin-theme-bg:not([data-theme="light"]):not([data-theme="dark"]) {
+    background-color: #0b1712;
+    background-image: linear-gradient(135deg, #0b1712 0%, #123524 50%, #0b1712 100%);
+}
+
 /* RTL Support for Arabic */
 [dir="rtl"] body {
     font-family: var(--font-sans);
@@ -2588,3 +2601,41 @@ body,
 
 /* RTL: flip directional arrows to point outward (left) for Arabic */
 [dir="rtl"] .rtl-flip-arrow { transform: scaleX(-1); }
+
+/* ============================================================
+   VIDEO THUMBNAILS — YouTube-style red play button overlay
+   ============================================================ */
+.video-thumb {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    cursor: pointer;
+    background: #0b1712;
+    display: block;
+}
+.video-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.video-thumb .yt-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 68px;
+    height: 48px;
+    pointer-events: none;
+    transition: transform 0.2s ease, filter 0.2s ease;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+.video-thumb:hover .yt-play,
+.video-thumb:focus-visible .yt-play {
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.55));
+}
+.video-thumb:focus-visible {
+    outline: 2px solid var(--brand-bright);
+    outline-offset: 2px;
+}
