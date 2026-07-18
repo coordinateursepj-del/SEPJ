@@ -112,11 +112,11 @@ $item = $contentItem;
             // the same way as the Videos section: a thumbnail with a red play
             // button that turns into the player on click (see initVideoThumbnails).
             $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '') ?? youtube_embed_url($body ?? '');
+            // Thumbnail: prefer an admin-chosen custom video thumbnail; otherwise
+            // fetch it automatically from the YouTube video (never the article cover).
             $pageVideoThumb = youtube_thumbnail_url(
                 $item['video_url'] ?? '',
-                !empty($item['video_thumb'])
-                    ? upload_url($item['video_thumb'])
-                    : (!empty($item['featured_image']) ? upload_url($item['featured_image']) : null)
+                !empty($item['video_thumb']) ? upload_url($item['video_thumb']) : null
             );
             ?>
             <?php if ($pageVideoEmbed): ?>
@@ -125,7 +125,7 @@ $item = $contentItem;
                 <div class="video-thumb rounded-xl overflow-hidden" data-embed="<?= e($pageVideoEmbed) ?>">
                     <?php if ($pageVideoThumb): ?><img src="<?= e($pageVideoThumb) ?>" alt="<?= e($title) ?>" class="w-full h-full object-cover" loading="lazy">
                     <?php else: ?><div class="w-full h-full bg-emerald-900/30 flex items-center justify-center" aria-hidden="true"><i class="fa-solid fa-video text-emerald-400 text-3xl"></i></div><?php endif; ?>
-                    <span class="yt-play" aria-hidden="true"><svg viewBox="0 0 68 48"><path d="M66.5 7.7c-.8-2.9-2.5-5.4-5.4-6.2C55.8.1 34 0 34 0S12.2.1 6.9 1.5C4 2.3 2.3 4.8 1.5 7.7.1 13 0 24 0 24s.1 11 1.5 16.3c.8-2.9 2.5-5.4-5.4-6.2C12.2 47.9 34 48 34 48s21.8-.1 27.1-1.5c2.9-.8 4.6-3.3 5.4-6.2C67.9 35 68 24 68 24s-.1-11-1.5-16.3z" fill="#f00"/><path d="M45 24 27 14v20z" fill="#fff"/></svg></span>
+                    <span class="yt-play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span>
                     <span class="sr-only"><?= __('watch_video', $lang) ?></span>
                 </div>
             </div>
