@@ -58,8 +58,15 @@ if ($is404) {
     http_response_code(404);
 }
 
+// Included templates share this file's variable scope. The navigation uses
+// $item for its menu loops, so preserve the content record before the header.
+$contentItem = $item;
+
 // Now include the header (outputs DOCTYPE, head, body, nav)
 require_once 'includes/header.php';
+
+// Restore the article after the navigation template's loop variables.
+$item = $contentItem;
 ?>
 
 <main id="main-content">
