@@ -113,4 +113,22 @@ if ($slugArg !== '') {
     }
 }
 
+// 7) Replicate page.php's EXACT execution order: fetch FIRST, then header,
+//    then read $item — to catch anything header.php does that mutates $item.
+if ($slugArg !== '') {
+    try {
+        $stmt = db()->prepare("SELECT * FROM content_items WHERE slug=:s AND status='published' LIMIT 1");
+        $stmt->execute(['s' => $slugArg]);
+        $item7 = $stmt->fetch();
+        ob_start();
+        require_once 'includes/header.php';
+        ob_end_clean();
+        echo "[7] page.php order (fetch then header):\n";
+        echo "    keys=" . implode(',', array_keys($item7)) . "\n";
+        echo "    video_url=[" . ($item7['video_url'] ?? 'NULL') . "]\n";
+    } catch (Exception $e) {
+        echo "[7] failed: " . $e->getMessage() . "\n";
+    }
+}
+
 echo "\nDone. Reload the article page now.\n";
