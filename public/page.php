@@ -108,23 +108,25 @@ $item = $contentItem;
             </div>
 
             <?php
-            // A news article can carry its own optional YouTube URL.  Render a
-            // real iframe here rather than depending on JavaScript to turn a
-            // thumbnail into a player after a click.
+            // A news article can carry its own optional YouTube URL.  Show it
+            // the same way as the Videos section: a thumbnail with a red play
+            // button that turns into the player on click (see initVideoThumbnails).
             $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '') ?? youtube_embed_url($body ?? '');
+            $pageVideoThumb = youtube_thumbnail_url(
+                $item['video_url'] ?? '',
+                !empty($item['video_thumb'])
+                    ? upload_url($item['video_thumb'])
+                    : (!empty($item['featured_image']) ? upload_url($item['featured_image']) : null)
+            );
             ?>
             <?php if ($pageVideoEmbed): ?>
             <div class="mt-10">
                 <h2 class="section-title"><?= __('video_section_label', $lang) ?></h2>
-                <div class="aspect-video rounded-xl overflow-hidden bg-black">
-                    <iframe
-                        src="<?= e($pageVideoEmbed) ?>"
-                        class="w-full h-full"
-                        title="<?= e($title) ?>"
-                        loading="lazy"
-                        referrerpolicy="strict-origin-when-cross-origin"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen></iframe>
+                <div class="video-thumb rounded-xl overflow-hidden" data-embed="<?= e($pageVideoEmbed) ?>">
+                    <?php if ($pageVideoThumb): ?><img src="<?= e($pageVideoThumb) ?>" alt="<?= e($title) ?>" class="w-full h-full object-cover" loading="lazy">
+                    <?php else: ?><div class="w-full h-full bg-emerald-900/30 flex items-center justify-center" aria-hidden="true"><i class="fa-solid fa-video text-emerald-400 text-3xl"></i></div><?php endif; ?>
+                    <span class="yt-play" aria-hidden="true"><svg viewBox="0 0 68 48"><path d="M66.5 7.7c-.8-2.9-2.5-5.4-5.4-6.2C55.8.1 34 0 34 0S12.2.1 6.9 1.5C4 2.3 2.3 4.8 1.5 7.7.1 13 0 24 0 24s.1 11 1.5 16.3c.8-2.9 2.5-5.4-5.4-6.2C12.2 47.9 34 48 34 48s21.8-.1 27.1-1.5c2.9-.8 4.6-3.3 5.4-6.2C67.9 35 68 24 68 24s-.1-11-1.5-16.3z" fill="#f00"/><path d="M45 24 27 14v20z" fill="#fff"/></svg></span>
+                    <span class="sr-only"><?= __('watch_video', $lang) ?></span>
                 </div>
             </div>
             <?php endif; ?>
