@@ -30,6 +30,7 @@ if (!$slug) {
         $stmt = db()->prepare("SELECT * FROM content_items WHERE slug = :slug AND status = 'published' LIMIT 1");
         $stmt->execute(['slug' => $slug]);
         $item = $stmt->fetch();
+        echo "<!-- DBG-A video_url=[" . ($item['video_url'] ?? 'NULL') . "] -->\n";
     } catch (PDOException $e) {
         $item = null;
     }
@@ -40,6 +41,7 @@ if (!$slug) {
         $title   = content_field($item, 'title', $lang);
         $summary = content_field($item, 'summary', $lang);
         $body    = content_field($item, 'body', $lang);
+        echo "<!-- DBG-B video_url=[" . ($item['video_url'] ?? 'NULL') . "] -->\n";
 
         try {
             $mediaStmt = db()->prepare("SELECT * FROM media WHERE content_item_id = :id ORDER BY sort_order ASC");
