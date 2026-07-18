@@ -30,7 +30,6 @@ if (!$slug) {
         $stmt = db()->prepare("SELECT * FROM content_items WHERE slug = :slug AND status = 'published' LIMIT 1");
         $stmt->execute(['slug' => $slug]);
         $item = $stmt->fetch();
-        echo "<!-- DBG-A video_url=[" . ($item['video_url'] ?? 'NULL') . "] -->\n";
     } catch (PDOException $e) {
         $item = null;
     }
@@ -41,7 +40,6 @@ if (!$slug) {
         $title   = content_field($item, 'title', $lang);
         $summary = content_field($item, 'summary', $lang);
         $body    = content_field($item, 'body', $lang);
-        echo "<!-- DBG-B video_url=[" . ($item['video_url'] ?? 'NULL') . "] -->\n";
 
         try {
             $mediaStmt = db()->prepare("SELECT * FROM media WHERE content_item_id = :id ORDER BY sort_order ASC");
@@ -109,30 +107,26 @@ require_once 'includes/header.php';
             </div>
 
             <?php
-            // Use the same resolution order as the (working) Videos page:
-            // explicit video_url first, then fall back to a YouTube link
-            // embedded anywhere in the article body.
-            ?>
-            <!-- DEPLOYED:videoblock-v3 -->
-            <?php
+            // A news article can carry its own optional YouTube URL.  Render a
+            // real iframe here rather than depending on JavaScript to turn a
+            // thumbnail into a player after a click.
             $pageVideoEmbed = youtube_embed_url($item['video_url'] ?? '') ?? youtube_embed_url($body ?? '');
-            // DIAGNOSTIC: render unconditionally to confirm output path
-            $pageVideoThumb = youtube_thumbnail_url(
-                $item['video_url'] ?? '',
-                !empty($item['video_thumb'])
-                    ? upload_url($item['video_thumb'])
-                    : (!empty($item['featured_image']) ? upload_url($item['featured_image']) : null)
-            );
             ?>
+            <?php if ($pageVideoEmbed): ?>
             <div class="mt-10">
                 <h2 class="section-title"><?= __('video_section_label', $lang) ?></h2>
-                <div class="video-thumb rounded-xl overflow-hidden" data-embed="<?= e($pageVideoEmbed) ?>" data-dbgvurl="<?= e($item['video_url'] ?? 'NULL') ?>" data-dbglang="<?= e($lang) ?>">
-                    <?php if ($pageVideoThumb): ?><img src="<?= e($pageVideoThumb) ?>" alt="<?= e($title) ?>" class="w-full h-full object-cover" loading="lazy">
-                    <?php else: ?><div class="w-full h-full bg-emerald-900/30 flex items-center justify-center" aria-hidden="true"><i class="fa-solid fa-video text-emerald-400 text-3xl"></i></div><?php endif; ?>
-                    <span class="yt-play" aria-hidden="true"><svg viewBox="0 0 68 48"><path d="M66.5 7.7c-.8-2.9-2.5-5.4-5.4-6.2C55.8.1 34 0 34 0S12.2.1 6.9 1.5C4 2.3 2.3 4.8 1.5 7.7.1 13 0 24 0 24s.1 11 1.5 16.3c.8-2.9 2.5-5.4-5.4-6.2C12.2 47.9 34 48 34 48s21.8-.1 27.1-1.5c2.9-.8 4.6-3.3 5.4-6.2C67.9 35 68 24 68 24s-.1-11-1.5-16.3z" fill="#f00"/><path d="M45 24 27 14v20z" fill="#fff"/></svg></span>
-                    <span class="sr-only"><?= __('watch_video', $lang) ?></span>
+                <div class="aspect-video rounded-xl overflow-hidden bg-black">
+                    <iframe
+                        src="<?= e($pageVideoEmbed) ?>"
+                        class="w-full h-full"
+                        title="<?= e($title) ?>"
+                        loading="lazy"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen></iframe>
                 </div>
             </div>
+            <?php endif; ?>
 
             <?php if (!empty($galleryImages)): ?>
             <div class="mt-12">

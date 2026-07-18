@@ -178,7 +178,8 @@ function upload_url(string $filePath): string
  * Extract the 11-character YouTube video id from any common URL format.
  *
  * Accepts watch?v=ID, youtu.be/ID, youtube.com/embed/ID, youtube.com/shorts/ID,
- * with optional www./m. prefix and extra query parameters.
+ * and youtube.com/live/ID links, with optional www./m. prefix and extra query
+ * parameters.
  *
  * @return string|null The video id, or null if the input is not a YouTube URL.
  */
@@ -195,6 +196,7 @@ function youtube_id_from_url(string $url): ?string
         "~youtu\.be/({$id})~",          // youtu.be/ID
         "~/embed/({$id})~",             // youtube.com/embed/ID
         "~/shorts/({$id})~",            // youtube.com/shorts/ID
+        "~/live/({$id})~",              // youtube.com/live/ID
     ];
 
     foreach ($patterns as $pattern) {
