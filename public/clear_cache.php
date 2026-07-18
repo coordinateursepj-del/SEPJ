@@ -96,4 +96,21 @@ if ($slugArg !== '') {
     }
 }
 
+// 6) Replicate page.php's EXACT include order: header FIRST, then fetch,
+//    to see if header.php (or its includes) corrupts the $item fetch.
+if ($slugArg !== '') {
+    try {
+        ob_start();
+        require_once 'includes/header.php';
+        ob_end_clean();
+        $s = db()->prepare("SELECT * FROM content_items WHERE slug=:s AND status='published' LIMIT 1");
+        $s->execute(['s' => $slugArg]);
+        $item2 = $s->fetch();
+        echo "[6] after-header fetch slug='$slugArg':\n";
+        echo "    video_url=[" . ($item2['video_url'] ?? 'NULL') . "]\n";
+    } catch (Exception $e) {
+        echo "[6] after-header fetch failed: " . $e->getMessage() . "\n";
+    }
+}
+
 echo "\nDone. Reload the article page now.\n";
