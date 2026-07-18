@@ -335,9 +335,9 @@ function get_translations(): array
             'en' => 'Article images',
         ],
         'video_section_label' => [
-            'ar' => 'فيديو يوتيوب (اختياري)',
-            'fr' => 'Vidéo YouTube (optionnel)',
-            'en' => 'YouTube video (optional)',
+            'ar' => 'فيديو',
+            'fr' => 'Vidéo',
+            'en' => 'Video',
         ],
         'attach_video_help' => [
             'ar' => 'أضف رابط يوتيوب لعرض الفيديو تحت المقال وفوق الصور.',

@@ -97,12 +97,6 @@ $item = $contentItem;
 
     <section class="py-8 relative z-10">
         <div class="max-w-4xl mx-auto px-4">
-            <?php if (!empty($item['featured_image'])): ?>
-            <div class="mb-8 rounded-xl overflow-hidden">
-                <img src="<?= e(upload_url($item['featured_image'])) ?>" alt="<?= e($title) ?>" class="w-full max-h-[500px] object-cover">
-            </div>
-            <?php endif; ?>
-
             <?php if ($summary): ?>
             <div class="glass-card-static p-6 mb-8">
                 <p class="text-lg text-emerald-200/90 leading-relaxed"><?= e($summary) ?></p>
