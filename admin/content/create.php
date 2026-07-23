@@ -349,6 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" class="inline-block align-middle"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
                                             <span class="align-middle"><?php if ($lang === 'ar'): ?>توليد<?php elseif ($lang === 'fr'): ?>Générer<?php else: ?>Generate<?php endif; ?></span>
                                         </button>
+                                        <span class="ai-error hidden text-red-400 text-xs"></span>
                                     </label>
                                     <textarea id="body_<?= $code ?>" name="body_<?= $code ?>" rows="12" class="form-input font-mono text-sm" data-ai-source="true"><?= e($item['body_' . $code]) ?></textarea>
                                     <p class="text-xs text-emerald-300/40 mt-1">HTML <?php if ($lang === 'ar'): ?>مسموح به
@@ -706,6 +707,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
+                    var errSpan = btn.parentElement.querySelector('.ai-error');
                     if (data.success) {
                         if (data.title && !titleInput.value.trim()) {
                             titleInput.value = data.title;
@@ -714,6 +716,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             summaryTA.value = data.summary;
                             summaryTA.dispatchEvent(new Event('input', { bubbles: true }));
                         }
+                        if (errSpan) { errSpan.classList.add('hidden'); errSpan.textContent = ''; }
+                    } else {
+                        if (errSpan) {
+                            errSpan.textContent = data.error || '<?php if ($lang === 'ar'): ?>فشل التوليد<?php elseif ($lang === 'fr'): ?>Échec de génération<?php else: ?>Generation failed<?php endif; ?>';
+                            errSpan.classList.remove('hidden');
+                            setTimeout(function() { errSpan.classList.add('hidden'); }, 8000);
+                        }
+                    }
+                })
+                .catch(function(err) {
+                    var errSpan = btn.parentElement.querySelector('.ai-error');
+                    if (errSpan) {
+                        errSpan.textContent = '<?php if ($lang === 'ar'): ?>خطأ في الاتصال<?php elseif ($lang === 'fr'): ?>Erreur de connexion<?php else: ?>Connection error<?php endif; ?>';
+                        errSpan.classList.remove('hidden');
+                        setTimeout(function() { errSpan.classList.add('hidden'); }, 8000);
                     }
                 })
                 .finally(function() {
