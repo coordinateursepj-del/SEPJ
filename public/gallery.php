@@ -15,7 +15,8 @@ try {
         SELECT COUNT(*)
         FROM media m
         LEFT JOIN content_items ci ON m.content_item_id = ci.id
-        WHERE m.content_item_id IS NULL OR ci.status = 'published'
+        WHERE (m.content_item_id IS NULL OR ci.status = 'published')
+          AND m.file_path IS NOT NULL AND m.file_path != ''
     ")->fetchColumn();
 
     $totalPages = max(1, ceil($total / $perPage));
@@ -28,7 +29,8 @@ try {
                {$titleCol} AS article_title
         FROM media m
         LEFT JOIN content_items ci ON m.content_item_id = ci.id
-        WHERE m.content_item_id IS NULL OR ci.status = 'published'
+        WHERE (m.content_item_id IS NULL OR ci.status = 'published')
+          AND m.file_path IS NOT NULL AND m.file_path != ''
         ORDER BY m.created_at DESC
         LIMIT ? OFFSET ?
     ");
