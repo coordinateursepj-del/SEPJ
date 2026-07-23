@@ -866,7 +866,7 @@ function translateEmptyFields() {
             const isHtml = field === 'body';
 
             promises.push(
-                fetch('ajax/translate.php', {
+                fetch((window.SEPJ_AJAX_PATH || 'ajax') + '/translate.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

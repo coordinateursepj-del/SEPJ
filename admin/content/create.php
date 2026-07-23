@@ -627,7 +627,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     @keyframes ai-spin { to { transform: rotate(360deg); } }
     </style>
 
-    <script>window.SEPJ_CSRF = <?= json_encode(csrf_token()) ?>;</script>
+    <script>window.SEPJ_CSRF = <?= json_encode(csrf_token()) ?>; window.SEPJ_AJAX_PATH = '../ajax';</script>
     <script src="../../public/assets/js/admin.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -701,7 +701,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 formData.append('lang', lang);
                 formData.append('csrf_token', window.SEPJ_CSRF || '');
 
-                fetch('ajax/ai_generate.php', {
+                fetch('../ajax/ai_generate.php', {
                     method: 'POST',
                     body: formData
                 })

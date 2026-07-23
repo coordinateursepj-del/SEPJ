@@ -92,17 +92,22 @@ class LibreTranslateService
 
 class GoogleTranslateService
 {
-    private int $timeout;
+    private int     $timeout;
+    private ?string $apiKey;
 
     public function __construct()
     {
         $this->timeout = defined('TRANSLATION_TIMEOUT')
             ? max(5, (int) TRANSLATION_TIMEOUT)
             : 30;
+        $this->apiKey = defined('GOOGLE_TRANSLATE_API_KEY')
+            ? (GOOGLE_TRANSLATE_API_KEY ?: null)
+            : null;
     }
 
     /**
-     * Translate $text from $from to $to via Google Translate's public endpoint.
+     * Translate $text from $from to $to via Google Cloud Translation API v2
+     * (authenticated with API key) or the free public endpoint as fallback.
      *
      * @param string $text   Source text (plain or HTML)
      * @param string $from   ISO 639-1 source language code (ar, fr, en)
@@ -112,7 +117,63 @@ class GoogleTranslateService
      */
     public function translate(string $text, string $from, string $to, bool $isHtml = false): string
     {
-        // Google expects two-letter codes; map our ar/fr/en directly.
+        if ($this->apiKey) {
+            return $this->translateWithKey($text, $from, $to, $isHtml);
+        }
+        return $this->translateFree($text, $from, $to);
+    }
+
+    /**
+     * Translate via Google Cloud Translation API v2 with API key.
+     */
+    private function translateWithKey(string $text, string $from, string $to, bool $isHtml): string
+    {
+        $payload = json_encode([
+            'q'      => $text,
+            'source' => $from,
+            'target' => $to,
+            'format' => $isHtml ? 'html' : 'text',
+        ]);
+
+        $endpoint = 'https://translation.googleapis.com/language/translate/v2?key=' . urlencode($this->apiKey);
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_TIMEOUT        => $this->timeout,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+        ]);
+
+        $body     = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlErr) {
+            error_log("[GoogleTranslate/Key] cURL error ({$from}→{$to}): {$curlErr}");
+            return $text;
+        }
+
+        if ($httpCode !== 200) {
+            error_log("[GoogleTranslate/Key] HTTP {$httpCode} ({$from}→{$to}): " . substr((string) $body, 0, 300));
+            return $text;
+        }
+
+        $data = json_decode($body, true);
+        $translated = $data['data']['translations'][0]['translatedText'] ?? '';
+
+        return $translated !== '' ? $translated : $text;
+    }
+
+    /**
+     * Translate via Google Translate's free public endpoint (no key required).
+     */
+    private function translateFree(string $text, string $from, string $to): string
+    {
         $params = http_build_query([
             'client'   => 'gtx',
             'sl'       => $from,
@@ -141,26 +202,26 @@ class GoogleTranslateService
         curl_close($ch);
 
         if ($curlErr) {
-            error_log("[GoogleTranslate] cURL error ({$from}→{$to}): {$curlErr}");
+            error_log("[GoogleTranslate/Free] cURL error ({$from}→{$to}): {$curlErr}");
             return $text;
         }
 
         if ($httpCode !== 200) {
-            error_log("[GoogleTranslate] HTTP {$httpCode} ({$from}→{$to}): " . substr((string) $body, 0, 300));
+            error_log("[GoogleTranslate/Free] HTTP {$httpCode} ({$from}→{$to}): " . substr((string) $body, 0, 300));
             return $text;
         }
 
-        $translated = self::parseResponse($body);
+        $data       = json_decode($body, true);
+        $translated = self::parseFreeResponse($data);
 
         return $translated !== '' ? $translated : $text;
     }
 
     /**
-     * Parse Google's nested-JSON response (array of sentence chunks).
+     * Parse Google's free-endpoint nested-JSON response (array of sentence chunks).
      */
-    private static function parseResponse(string $body): string
+    private static function parseFreeResponse(?array $data): string
     {
-        $data = json_decode($body, true);
         if (!is_array($data) || !isset($data[0])) {
             return '';
         }

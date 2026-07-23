@@ -20,5 +20,9 @@ define('TRANSLATION_PROVIDER', 'google');
 //              then set this to: http://localhost:5000/translate
 define('TRANSLATION_ENDPOINT', 'https://translate.fedilab.app/translate');
 
+// Google Cloud Translation API key (v2). Leave empty to use the free public endpoint.
+// Get a key at https://console.cloud.google.com/apis/credentials (enable "Cloud Translation API").
+define('GOOGLE_TRANSLATE_API_KEY', '');
+
 // Seconds to wait for a response before giving up.
 define('TRANSLATION_TIMEOUT', 30);
