@@ -101,7 +101,7 @@ $imageUrls = array_map(function($img) { return upload_url($img['file_path']); },
                 <?php if ($page > 1): ?>
                 <a href="?page=<?= $page - 1 ?>"
                    class="flex items-center justify-center w-10 h-10 rounded-xl backdrop-blur-md border border-white/15 text-white/80 hover:text-white hover:border-emerald-400/40 hover:bg-emerald-600/20 transition-all duration-300">
-                    <i class="fa-solid fa-chevron-left text-sm" aria-hidden="true"></i>
+                    <i class="fa-solid fa-chevron-left text-sm rtl-flip-arrow" aria-hidden="true"></i>
                 </a>
                 <?php endif; ?>
 
@@ -138,7 +138,7 @@ $imageUrls = array_map(function($img) { return upload_url($img['file_path']); },
                 <?php if ($page < $totalPages): ?>
                 <a href="?page=<?= $page + 1 ?>"
                    class="flex items-center justify-center w-10 h-10 rounded-xl backdrop-blur-md border border-white/15 text-white/80 hover:text-white hover:border-emerald-400/40 hover:bg-emerald-600/20 transition-all duration-300">
-                    <i class="fa-solid fa-chevron-right text-sm" aria-hidden="true"></i>
+                    <i class="fa-solid fa-chevron-right text-sm rtl-flip-arrow" aria-hidden="true"></i>
                 </a>
                 <?php endif; ?>
             </nav>

@@ -331,7 +331,7 @@ function openLightbox(index, images, triggerEl) {
             lang === 'fr' ? 'Visionneuse d\'images' :
             'Image viewer';
         const closeLbl =
-            lang === 'ar' ? 'إغلاق' : lang === 'fr' ? 'Fermer' : 'Close';
+            lang === 'ar' ? 'خروج' : lang === 'fr' ? 'Quitter' : 'Exit';
         const prevLbl =
             lang === 'ar' ? 'الصورة السابقة' : lang === 'fr' ? 'Image précédente' : 'Previous image';
         const nextLbl =
@@ -343,7 +343,7 @@ function openLightbox(index, images, triggerEl) {
         lb.setAttribute('aria-modal', 'true');
         lb.setAttribute('aria-label', label);
         lb.innerHTML = `
-            <button class="lightbox-close" aria-label="${closeLbl}">&times;</button>
+            <button class="lightbox-close" aria-label="${closeLbl}">${closeLbl}</button>
             <button class="lightbox-prev"  aria-label="${prevLbl}">&#8249;</button>
             <img src="" alt="" id="lightboxImg">
             <button class="lightbox-next"  aria-label="${nextLbl}">&#8250;</button>
