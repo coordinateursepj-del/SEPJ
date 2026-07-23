@@ -86,9 +86,9 @@ $editUser=null;if(isset($_GET['edit'])){$s=db()->prepare("SELECT * FROM users WH
 <?php $flash=get_flash();if($flash):?><div class="mb-4 p-4 rounded-lg bg-emerald-600/30 border border-emerald-500/30 text-emerald-300"><?=e($flash['message'])?></div><?php endif;?>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 <div class="lg:col-span-2">
-<div class="glass-card-static overflow-hidden"><table class="w-full text-sm"><thead><tr class="border-b border-white/10 text-emerald-300/70"><th class="text-right p-3"><?=$lang==='ar'?'الاسم':($lang==='fr'?'Nom':'Name')?></th><th class="text-right p-3">Email</th><th class="text-center p-3"><?=$lang==='ar'?'الدور':($lang==='fr'?'Rôle':'Role')?></th><th class="text-center p-3"><?=$lang==='ar'?'الحالة':($lang==='fr'?'Statut':'Status')?></th><th class="text-center p-3"><?=$lang==='ar'?'الإجراءات':($lang==='fr'?'Actions':'Actions')?></th></tr></thead>
-<tbody><?php foreach($users as $u):?><tr class="border-b border-white/5 hover:bg-white/5"><td class="p-3 text-white"><?=e($u['name'])?><?=$u['id']==$_SESSION['user_id']?(' <span class="text-xs text-emerald-400">('.($lang==='ar'?'أنت':($lang==='fr'?'vous':'you')).')</span>'):''?></td>
-<td class="p-3 text-emerald-200/70"><?=e($u['email'])?></td><td class="p-3 text-center"><?php
+<div class="glass-card-static overflow-hidden"><table class="w-full text-sm"><thead><tr class="border-b border-white/10 text-emerald-300/70"><th class="text-start p-3"><?=$lang==='ar'?'الاسم':($lang==='fr'?'Nom':'Name')?></th><th class="text-start p-3">Email</th><th class="text-center p-3"><?=$lang==='ar'?'الدور':($lang==='fr'?'Rôle':'Role')?></th><th class="text-center p-3"><?=$lang==='ar'?'الحالة':($lang==='fr'?'Statut':'Status')?></th><th class="text-center p-3"><?=$lang==='ar'?'الإجراءات':($lang==='fr'?'Actions':'Actions')?></th></tr></thead>
+<tbody><?php foreach($users as $u):?><tr class="border-b border-white/5 hover:bg-white/5"><td class="text-start p-3 text-white"><?=e($u['name'])?><?=$u['id']==$_SESSION['user_id']?(' <span class="text-xs text-emerald-400">('.($lang==='ar'?'أنت':($lang==='fr'?'vous':'you')).')</span>'):''?></td>
+<td class="text-start p-3 text-emerald-200/70"><?=e($u['email'])?></td><td class="p-3 text-center"><?php
 $roleLabels = ['admin' => ['ar'=>'مدير','fr'=>'Admin','en'=>'Admin'], 'editor' => ['ar'=>'محرر','fr'=>'Éditeur','en'=>'Editor']];
 $rl = $roleLabels[$u['role']][$lang] ?? $u['role'];
 echo e($rl);
