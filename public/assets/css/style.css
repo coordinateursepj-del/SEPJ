@@ -1145,6 +1145,7 @@ select.form-input option,
     border-left: 2px solid rgba(255,255,255,0.12);
 }
 .footer-arrow {
+    display: inline-block;
     font-size: 1.1em;
     opacity: 0.4;
     transition: var(--transition-smooth);
@@ -1166,13 +1167,16 @@ select.form-input option,
     border-left: none;
     border-right: 2px solid rgba(255,255,255,0.12);
 }
+[dir="rtl"] .footer-arrow {
+    transform: scaleX(-1);
+}
 
 [dir="rtl"] .footer-link:hover {
     transform: translateX(-4px);
     border-right-color: var(--emerald-400);
 }
 [dir="rtl"] .footer-link:hover .footer-arrow {
-    transform: translateX(-2px);
+    transform: scaleX(-1) translateX(-2px);
 }
 
 /* ---------- Responsive ---------- */

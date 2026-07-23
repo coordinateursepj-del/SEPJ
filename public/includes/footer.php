@@ -23,10 +23,10 @@ $lang = current_lang();
                     <div class="flex-1">
                         <h3 class="font-bold text-white mb-3"><?= __('quick_links', $lang) ?></h3>
                         <div class="space-y-2">
-                            <a href="projects.php" class="footer-link text-sm"><?= __('nav_projects', $lang) ?><span class="footer-arrow"><?= $lang === 'ar' ? '‹' : '›' ?></span></a>
-                            <a href="services.php" class="footer-link text-sm"><?= __('nav_services', $lang) ?><span class="footer-arrow"><?= $lang === 'ar' ? '‹' : '›' ?></span></a>
-                            <a href="news.php" class="footer-link text-sm"><?= __('nav_news', $lang) ?><span class="footer-arrow"><?= $lang === 'ar' ? '‹' : '›' ?></span></a>
-                            <a href="contact.php" class="footer-link text-sm"><?= __('nav_contact', $lang) ?><span class="footer-arrow"><?= $lang === 'ar' ? '‹' : '›' ?></span></a>
+                            <a href="projects.php" class="footer-link text-sm"><?= __('nav_projects', $lang) ?><span class="footer-arrow">→</span></a>
+                            <a href="services.php" class="footer-link text-sm"><?= __('nav_services', $lang) ?><span class="footer-arrow">→</span></a>
+                            <a href="news.php" class="footer-link text-sm"><?= __('nav_news', $lang) ?><span class="footer-arrow">→</span></a>
+                            <a href="contact.php" class="footer-link text-sm"><?= __('nav_contact', $lang) ?><span class="footer-arrow">→</span></a>
                         </div>
                     </div>
                     <div class="border-t sm:border-t-0 sm:border-l border-white/10 sm:pt-0 pt-4"></div>
