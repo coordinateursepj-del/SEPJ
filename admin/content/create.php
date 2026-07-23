@@ -344,8 +344,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <?php elseif ($lang === 'fr'): ?>Contenu
                                         <?php else: ?>Body
                                         <?php endif; ?> (<?= strtoupper($code) ?>)
+                                        <button type="button" class="ai-generate-btn hidden" data-lang="<?= $code ?>"
+                                                title="<?php if ($lang === 'ar'): ?>توليد العنوان والملخص تلقائياً<?php elseif ($lang === 'fr'): ?>Générer le titre et le résumé automatiquement<?php else: ?>Auto-generate title and summary<?php endif; ?>">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" class="inline-block align-middle"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
+                                            <span class="align-middle"><?php if ($lang === 'ar'): ?>توليد<?php elseif ($lang === 'fr'): ?>Générer<?php else: ?>Generate<?php endif; ?></span>
+                                        </button>
                                     </label>
-                                    <textarea name="body_<?= $code ?>" rows="12" class="form-input font-mono text-sm"><?= e($item['body_' . $code]) ?></textarea>
+                                    <textarea id="body_<?= $code ?>" name="body_<?= $code ?>" rows="12" class="form-input font-mono text-sm" data-ai-source="true"><?= e($item['body_' . $code]) ?></textarea>
                                     <p class="text-xs text-emerald-300/40 mt-1">HTML <?php if ($lang === 'ar'): ?>مسموح به
                                     <?php elseif ($lang === 'fr'): ?>autorisé
                                     <?php else: ?>allowed
@@ -582,7 +587,145 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     
+    <style>
+    .ai-generate-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.7rem;
+        font-weight: 500;
+        border-radius: 999px;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        background: rgba(251, 191, 36, 0.1);
+        color: #fbbf24;
+        cursor: pointer;
+        transition: all 0.2s;
+        vertical-align: middle;
+        margin-left: 0.5rem;
+    }
+    .ai-generate-btn:hover {
+        background: rgba(251, 191, 36, 0.2);
+        border-color: rgba(251, 191, 36, 0.5);
+    }
+    .ai-generate-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .ai-generate-btn .spinner {
+        display: none;
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(251, 191, 36, 0.3);
+        border-top-color: #fbbf24;
+        border-radius: 50%;
+        animation: ai-spin 0.6s linear infinite;
+    }
+    .ai-generate-btn.loading .spinner { display: inline-block; }
+    .ai-generate-btn.loading svg { display: none; }
+    @keyframes ai-spin { to { transform: rotate(360deg); } }
+    </style>
+
     <script>window.SEPJ_CSRF = <?= json_encode(csrf_token()) ?>;</script>
     <script src="../../public/assets/js/admin.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sources = document.querySelectorAll('textarea[data-ai-source]');
+        var btns = document.querySelectorAll('.ai-generate-btn');
+
+        function wordCount(text) {
+            return text.trim().split(/\s+/).filter(function(w) { return w.length > 0; }).length;
+        }
+
+        function updateButtons() {
+            var lang = getActiveLang();
+            var textarea = document.getElementById('body_' + lang);
+            if (!textarea) return;
+            var count = wordCount(textarea.value);
+            btns.forEach(function(btn) {
+                if (btn.dataset.lang === lang) {
+                    if (count >= 5) {
+                        btn.classList.remove('hidden');
+                        btn.style.opacity = '0';
+                        btn.style.transform = 'translateY(4px)';
+                        requestAnimationFrame(function() {
+                            btn.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                            btn.style.opacity = '1';
+                            btn.style.transform = 'translateY(0)';
+                        });
+                    } else {
+                        btn.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                        btn.style.opacity = '0';
+                        btn.style.transform = 'translateY(4px)';
+                        setTimeout(function() { btn.classList.add('hidden'); }, 200);
+                    }
+                } else {
+                    btn.classList.add('hidden');
+                }
+            });
+        }
+
+        function getActiveLang() {
+            var active = document.querySelector('.lang-content:not(.hidden)');
+            return active ? active.dataset.lang : 'ar';
+        }
+
+        sources.forEach(function(ta) {
+            ta.addEventListener('input', updateButtons);
+        });
+
+        var tabs = document.querySelectorAll('.lang-tab');
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                setTimeout(updateButtons, 50);
+            });
+        });
+
+        btns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var lang = btn.dataset.lang;
+                var body = document.getElementById('body_' + lang);
+                var titleInput = document.querySelector('input[name="title_' + lang + '"]');
+                var summaryTA = document.getElementById('summary_' + lang);
+                if (!body || !titleInput || !summaryTA) return;
+                var text = body.value.trim();
+                if (wordCount(text) < 5) return;
+
+                btn.disabled = true;
+                btn.classList.add('loading');
+                btn.querySelector('span').textContent = '...';
+
+                var formData = new FormData();
+                formData.append('body', text);
+                formData.append('lang', lang);
+                formData.append('csrf_token', window.SEPJ_CSRF || '');
+
+                fetch('ajax/ai_generate.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        if (data.title && !titleInput.value.trim()) {
+                            titleInput.value = data.title;
+                        }
+                        if (data.summary && !summaryTA.value.trim()) {
+                            summaryTA.value = data.summary;
+                            summaryTA.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
+                })
+                .finally(function() {
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                    btn.querySelector('span').textContent = '<?php if ($lang === 'ar'): ?>توليد<?php elseif ($lang === 'fr'): ?>Générer<?php else: ?>Generate<?php endif; ?>';
+                });
+            });
+        });
+
+        updateButtons();
+    });
+    </script>
 </body>
 </html>
