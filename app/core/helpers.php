@@ -299,9 +299,14 @@ function lang_url(string $lang): string
     // On localhost, use clean URLs only if the current page already has a prefix.
     if ($usesPrefix || !$base) {
         unset($params['lang']);
-        $url = ($base ? "$base/$lang/$currentFile" : "/$lang/$currentFile");
-        if (!empty($params)) {
-            $url .= '?' . http_build_query($params);
+        $self = $_SERVER['PHP_SELF'] ?? '';
+        if (str_contains($self, '/admin/')) {
+            $params['lang'] = $lang;
+            $url = $self;
+            if (!empty($params)) $url .= '?' . http_build_query($params);
+        } else {
+            $url = ($base ? "$base/$lang/$currentFile" : "/$lang/$currentFile");
+            if (!empty($params)) $url .= '?' . http_build_query($params);
         }
         return $url;
     }
