@@ -26,7 +26,7 @@ $lang = current_lang();
     <div class="blob blob-2"></div>
     <div class="relative z-10 flex h-screen">
         <?php include 'includes/sidebar.php'; ?>
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden pt-16">
             <?php include 'includes/header.php'; ?>
             <main class="flex-1 overflow-y-auto p-6 flex items-center justify-center">
                 <div class="text-center">

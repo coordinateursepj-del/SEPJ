@@ -1,0 +1,19 @@
+RewriteEngine On
+Options -Indexes
+
+# Block sensitive files and directories
+RewriteRule ^\.user\.ini - [F,L]
+RewriteRule ^composer\.(json|lock)$ - [F,L]
+RewriteRule ^vendor/ - [F,L]
+RewriteRule ^\.git/ - [F,L]
+
+# Language-prefix routes: /ar/news.php -> public/news.php
+RewriteRule ^(ar|fr|en)/(.*)$ public/$2 [QSA,L]
+RewriteRule ^(ar|fr|en)/?$ public/index.php [QSA,L]
+
+# Admin and public paths pass through directly
+RewriteRule ^admin/ - [L]
+RewriteRule ^public/ - [L]
+
+# Everything else is served from public/
+RewriteRule ^(.*)$ public/$1 [L]

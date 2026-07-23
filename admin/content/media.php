@@ -23,7 +23,7 @@ if (!$contentId) {
 }
 
 // Fetch the content item
-$stmt = db()->prepare("SELECT id, type, slug, COALESCE(NULLIF(title_ar, ''), NULLIF(title_fr, ''), NULLIF(title_en, ''), '---') AS title FROM content_items WHERE id = :id");
+$stmt = db()->prepare("SELECT id, type, slug, COALESCE(NULLIF(title_{$lang}, ''), NULLIF(title_ar, ''), NULLIF(title_fr, ''), NULLIF(title_en, ''), '---') AS title FROM content_items WHERE id = :id");
 $stmt->execute(['id' => $contentId]);
 $content = $stmt->fetch();
 
@@ -114,7 +114,7 @@ $mediaItems = $mediaStmt->fetchAll();
     <div class="relative z-10 flex h-screen">
         <?php include '../includes/sidebar.php'; ?>
         
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden pt-16">
             <?php include '../includes/header.php'; ?>
             
             <main class="flex-1 overflow-y-auto p-6">
@@ -139,12 +139,18 @@ $mediaItems = $mediaStmt->fetchAll();
                 <!-- Upload Form -->
                 <div class="glass-card-static p-6 mb-6">
                     <h2 class="text-lg font-semibold text-white mb-4"><?= $lang === 'ar' ? 'رفع صور جديدة' : ($lang === 'fr' ? 'Télécharger des images' : 'Upload New Images') ?></h2>
-                    <form method="POST" enctype="multipart/form-data">
-                        <?= csrf_field() ?>
-                        <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/webp" 
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40 mb-4">
-                        <button type="submit" class="glass-btn"><?= $lang === 'ar' ? 'رفع' : ($lang === 'fr' ? 'Télécharger' : 'Upload') ?></button>
-                    </form>
+                        <form method="POST" enctype="multipart/form-data">
+                            <?= csrf_field() ?>
+                            <div class="file-input-wrap">
+                                <span class="file-input-btn">
+                                    <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                                    <?= $lang === 'ar' ? 'اختر صور' : ($lang === 'fr' ? 'Choisir' : 'Browse') ?>
+                                </span>
+                                <span class="file-input-name" data-empty="<?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?>"><?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?></span>
+                                <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/webp">
+                            </div>
+                            <button type="submit" class="glass-btn mt-4"><?= $lang === 'ar' ? 'رفع' : ($lang === 'fr' ? 'Télécharger' : 'Upload') ?></button>
+                        </form>
                 </div>
                 
                 <!-- Gallery Grid -->

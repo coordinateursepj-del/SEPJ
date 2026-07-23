@@ -47,7 +47,7 @@ try {
     // Recent content items
     $recentItems = $pdo->query("
         SELECT id, type, slug,
-               COALESCE(NULLIF(title_ar,''),NULLIF(title_fr,''),NULLIF(title_en,''),'No title') AS title,
+               COALESCE(NULLIF(title_{$lang},''),NULLIF(title_ar,''),NULLIF(title_fr,''),NULLIF(title_en,''),'No title') AS title,
                status, created_at
         FROM content_items
         ORDER BY created_at DESC
@@ -79,13 +79,21 @@ $statsCards = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>" data-theme="light">
+<html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة القيادة - <?= e(APP_NAME) ?></title>
+    <title><?php if ($lang === 'ar'): ?>لوحة القيادة<?php elseif ($lang === 'fr'): ?>Tableau de bord<?php else: ?>Dashboard<?php endif; ?> - <?= e(APP_NAME) ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../public/assets/css/style.css">
+    <script>
+    (function() {
+        var theme = localStorage.getItem('sepj-theme');
+        if (theme === 'light' || theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+    })();
+    </script>
 </head>
 <body class="admin-theme-bg min-h-screen">
     <div class="blob blob-1"></div>
@@ -96,7 +104,7 @@ $statsCards = [
         <?php include 'includes/sidebar.php'; ?>
         
         <!-- Main content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden pt-16">
             <!-- Header -->
             <?php include 'includes/header.php'; ?>
             

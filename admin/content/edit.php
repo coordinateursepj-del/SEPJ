@@ -54,7 +54,7 @@ $auto_translate = true;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     
-    $item['slug'] = slugify(trim($_POST['slug'] ?? $item['slug']));
+    // Read titles first so they're available for slug generation
     foreach (['title', 'summary', 'body'] as $field) {
         foreach (['ar', 'fr', 'en'] as $flang) {
             $key = "{$field}_{$flang}";
@@ -63,6 +63,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    
+    // Auto-generate slug from date + title if empty
+    $slugInput = trim($_POST['slug'] ?? '');
+    if ($slugInput === '') {
+        $datePrefix = '';
+        if (!empty($_POST['published_at'])) {
+            $dt = DateTime::createFromFormat('Y-m-d\TH:i', $_POST['published_at']);
+            if ($dt) {
+                $datePrefix = $dt->format('Y-m-d-');
+            }
+        }
+        $titleForSlug = $item['title_ar'] ?: $item['title_fr'] ?: $item['title_en'] ?: '';
+        if ($titleForSlug) {
+            $slugInput = $datePrefix . $titleForSlug;
+        }
+    }
+    $item['slug'] = slugify($slugInput);
     $item['status'] = $_POST['status'] ?? 'draft';
     $item['is_featured'] = isset($_POST['is_featured']) ? 1 : 0;
     $item['published_at'] = $_POST['published_at'] ?? $item['published_at'];
@@ -110,10 +127,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Collect images marked for deletion (deleted on save, not immediately)
+    $deletedMediaIds = [];
+    if (!empty($_POST['deleted_media_ids']) && is_array($_POST['deleted_media_ids'])) {
+        foreach ($_POST['deleted_media_ids'] as $did) {
+            $did = (int)$did;
+            if ($did > 0) $deletedMediaIds[] = $did;
+        }
+    }
+
     try {
         $cntStmt = db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = :id");
         $cntStmt->execute(['id' => $id]);
         $totalCount = (int) ($cntStmt->fetchColumn() ?: 0);
+        // Marked-for-delete images don't count toward the limit
+        $totalCount = max(0, $totalCount - count($deletedMediaIds));
     } catch (PDOException $e) {
         error_log("Edit content media count error: " . $e->getMessage());
         $totalCount = 0;
@@ -209,6 +237,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = db()->prepare("UPDATE content_items SET " . implode(', ', $set) . " WHERE id = :id");
             $stmt->execute($params);
             
+            // Delete marked media files and database rows
+            if (!empty($deletedMediaIds)) {
+                $placeholders = implode(',', array_fill(0, count($deletedMediaIds), '?'));
+                $delStmt = db()->prepare("SELECT id, file_path FROM media WHERE id IN ($placeholders) AND content_item_id = ?");
+                $delParams = array_merge($deletedMediaIds, [$id]);
+                $delStmt->execute($delParams);
+                while ($dm = $delStmt->fetch()) {
+                    if (!empty($dm['file_path'])) {
+                        delete_uploaded_file($dm['file_path']);
+                    }
+                }
+                $delMediaStmt = db()->prepare("DELETE FROM media WHERE id IN ($placeholders) AND content_item_id = ?");
+                $delMediaStmt->execute($delParams);
+                
+                // If the cover image was among the deleted ones, reset featured_image
+                if (in_array($coverMediaId, $deletedMediaIds) || !empty($item['featured_image'])) {
+                    // Check if the current featured image still exists in media
+                    $checkCover = db()->prepare("SELECT COUNT(*) FROM media WHERE content_item_id = ? AND file_path = ?");
+                    $checkCover->execute([$id, $item['featured_image']]);
+                    if ((int)$checkCover->fetchColumn() === 0) {
+                        // Pick the first remaining image as cover (if any)
+                        $firstMedia = db()->prepare("SELECT file_path FROM media WHERE content_item_id = ? ORDER BY sort_order ASC, created_at ASC LIMIT 1");
+                        $firstMedia->execute([$id]);
+                        $firstPath = $firstMedia->fetchColumn();
+                        $item['featured_image'] = $firstPath ?: '';
+                        // Update the featured_image in the content item
+                        $updCover = db()->prepare("UPDATE content_items SET featured_image = :fi WHERE id = :id");
+                        $updCover->execute(['fi' => $item['featured_image'], 'id' => $id]);
+                    }
+                }
+            }
+
             // Create media rows for each newly uploaded image, with a real content id.
             $insMedia = db()->prepare("INSERT INTO media (content_item_id, file_path, file_name, file_type, sort_order, created_at) VALUES (:cid, :path, :name, 'image', :so, NOW())");
             foreach ($uploadedPaths as $idx => $p) {
@@ -248,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="relative z-10 flex h-screen">
         <?php include '../includes/sidebar.php'; ?>
         
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden pt-16">
             <?php include '../includes/header.php'; ?>
             
             <main class="flex-1 overflow-y-auto p-6">
@@ -337,32 +397,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="block text-sm font-medium text-emerald-200 mb-2">
                             <?= __('video_thumbnail', $lang) ?>
                         </label>
-                        <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp"
-                               data-max="1" data-content-id="<?= $id ?>" data-mode="edit"
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <div class="file-input-wrap">
+                            <span class="file-input-btn">
+                                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                                <?= $lang === 'ar' ? 'اختر صور' : ($lang === 'fr' ? 'Choisir' : 'Browse') ?>
+                            </span>
+                            <span class="file-input-name" data-empty="<?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?>"><?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?></span>
+                            <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp"
+                                   data-max="1" data-content-id="<?= $id ?>" data-mode="edit">
+                        </div>
 
-                        <?php
-                        $coverCheckedId = null;
-                        if (!empty($item['featured_image'])) {
-                            foreach ($existingMedia as $m) {
-                                if ($m['file_path'] === $item['featured_image']) { $coverCheckedId = $m['id']; break; }
-                            }
-                        }
-                        ?>
                         <?php if (!empty($existingMedia)): ?>
                         <div id="existingGallery" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
-                            <?php foreach ($existingMedia as $m): ?>
-                            <div class="relative glass-card overflow-hidden group" data-media-id="<?= $m['id'] ?>">
-                                <div class="aspect-square overflow-hidden">
-                                    <img src="<?= e(upload_url($m['file_path'])) ?>" alt="" class="w-full h-full object-cover">
+                            <?php foreach ($existingMedia as $m):
+                            $isCover = $m['id'] === $coverCheckedId;
+                            $coverLabel = $lang === 'ar' ? 'غلاف' : ($lang === 'fr' ? 'Une' : 'Cover');
+                            $deleteLabel = $lang === 'ar' ? 'سيتم الحذف' : ($lang === 'fr' ? 'Supprimé' : 'To delete');
+                            ?>
+                            <div class="gallery-item<?= $isCover ? ' is-cover' : '' ?>" data-media-id="<?= $m['id'] ?>">
+                                <div class="gallery-item-img">
+                                    <img src="<?= e(upload_url($m['file_path'])) ?>" alt="">
+                                    <span class="gallery-item-badge"><?= $coverLabel ?></span>
+                                    <span class="gallery-item-delete-badge"><?= $deleteLabel ?></span>
                                 </div>
-                                <label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">
-                                    <input type="radio" name="cover_media_id" value="<?= $m['id'] ?>" <?= $m['id'] === $coverCheckedId ? 'checked' : '' ?>>
-                                    <?= $lang === 'ar' ? 'غلاف' : ($lang === 'fr' ? 'Couverture' : 'Cover') ?>
-                                </label>
-                                <a href="../media/delete.php?id=<?= $m['id'] ?>&return=content&content_id=<?= $id ?>&csrf_token=<?= csrf_token() ?>"
-                                   class="absolute top-1 right-1 text-xs text-red-400 hover:text-red-300 bg-black/40 rounded p-1"
-                                   onclick="return confirm('<?= $lang === 'ar' ? 'حذف هذه الصورة؟' : ($lang === 'fr' ? 'Supprimer cette image ?' : 'Delete this image?') ?>')">🗑️</a>
+                                <div class="gallery-item-actions">
+                                    <button type="button" class="gallery-btn gallery-btn-cover<?= $isCover ? ' is-active' : '' ?>" onclick="toggleCover(this, <?= $m['id'] ?>, 'media')">
+                                        <svg viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                        <?= $coverLabel ?>
+                                    </button>
+                                    <button type="button" class="gallery-btn gallery-btn-delete" onclick="markExistingForDelete(this, <?= $m['id'] ?>)">
+                                        <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    </button>
+                                </div>
+                                <input type="radio" name="cover_media_id" value="<?= $m['id'] ?>" <?= $isCover ? 'checked' : '' ?> class="hidden">
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -395,18 +462,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ?>
                         <?php if (!empty($existingMedia)): ?>
                         <div id="existingGallery" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mb-4">
-                            <?php foreach ($existingMedia as $m): ?>
-                            <div class="relative glass-card overflow-hidden group" data-media-id="<?= $m['id'] ?>">
-                                <div class="aspect-square overflow-hidden">
-                                    <img src="<?= e(upload_url($m['file_path'])) ?>" alt="" class="w-full h-full object-cover">
+                            <?php foreach ($existingMedia as $m):
+                            $isCover = $m['id'] === $coverCheckedId;
+                            $coverLabel = $lang === 'ar' ? 'غلاف' : ($lang === 'fr' ? 'Une' : 'Cover');
+                            $deleteLabel = $lang === 'ar' ? 'سيتم الحذف' : ($lang === 'fr' ? 'Supprimé' : 'To delete');
+                            ?>
+                            <div class="gallery-item<?= $isCover ? ' is-cover' : '' ?>" data-media-id="<?= $m['id'] ?>">
+                                <div class="gallery-item-img">
+                                    <img src="<?= e(upload_url($m['file_path'])) ?>" alt="">
+                                    <span class="gallery-item-badge"><?= $coverLabel ?></span>
+                                    <span class="gallery-item-delete-badge"><?= $deleteLabel ?></span>
                                 </div>
-                                <label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">
-                                    <input type="radio" name="cover_media_id" value="<?= $m['id'] ?>" <?= $m['id'] === $coverCheckedId ? 'checked' : '' ?>>
-                                    <?= $lang === 'ar' ? 'غلاف' : ($lang === 'fr' ? 'Couverture' : 'Cover') ?>
-                                </label>
-                                <a href="../media/delete.php?id=<?= $m['id'] ?>&return=content&content_id=<?= $id ?>&csrf_token=<?= csrf_token() ?>"
-                                   class="absolute top-1 right-1 text-xs text-red-400 hover:text-red-300 bg-black/40 rounded p-1"
-                                   onclick="return confirm('<?= $lang === 'ar' ? 'حذف هذه الصورة؟' : ($lang === 'fr' ? 'Supprimer cette image ?' : 'Delete this image?') ?>')">🗑️</a>
+                                <div class="gallery-item-actions">
+                                    <button type="button" class="gallery-btn gallery-btn-cover<?= $isCover ? ' is-active' : '' ?>" onclick="toggleCover(this, <?= $m['id'] ?>, 'media')">
+                                        <svg viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                        <?= $coverLabel ?>
+                                    </button>
+                                    <button type="button" class="gallery-btn gallery-btn-delete" onclick="markExistingForDelete(this, <?= $m['id'] ?>)">
+                                        <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    </button>
+                                </div>
+                                <input type="radio" name="cover_media_id" value="<?= $m['id'] ?>" <?= $isCover ? 'checked' : '' ?> class="hidden">
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -417,9 +493,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="block text-sm font-medium text-emerald-200 mb-1 mt-2">
                             <?= $lang === 'ar' ? 'إضافة صور جديدة' : ($lang === 'fr' ? 'Ajouter de nouvelles images' : 'Add new images') ?>
                         </label>
-                        <input type="file" id="galleryInput" multiple accept="image/jpeg,image/png,image/webp"
-                               data-max="<?= MAX_GALLERY_IMAGES ?>" data-content-id="<?= $id ?>" data-mode="edit"
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <div class="file-input-wrap">
+                            <span class="file-input-btn">
+                                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                                <?= $lang === 'ar' ? 'اختر صور' : ($lang === 'fr' ? 'Choisir' : 'Browse') ?>
+                            </span>
+                            <span class="file-input-name" data-empty="<?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?>"><?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?></span>
+                            <input type="file" id="galleryInput" multiple accept="image/jpeg,image/png,image/webp"
+                                   data-max="<?= MAX_GALLERY_IMAGES ?>" data-content-id="<?= $id ?>" data-mode="edit">
+                        </div>
                         <div id="galleryPreview" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-3"></div>
                         <p id="galleryCount" class="text-xs text-emerald-400 mt-2"></p>
                         <p class="text-xs text-emerald-300/40 mt-1">
@@ -461,9 +543,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="block text-sm font-medium text-emerald-200 mb-2 mt-4">
                             <?= __('video_thumbnail', $lang) ?>
                         </label>
-                        <input type="file" id="videoThumbInput" accept="image/jpeg,image/png,image/webp"
-                               data-content-id="<?= $id ?>" data-mode="edit"
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <div class="file-input-wrap">
+                            <span class="file-input-btn">
+                                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                                <?= $lang === 'ar' ? 'اختر صور' : ($lang === 'fr' ? 'Choisir' : 'Browse') ?>
+                            </span>
+                            <span class="file-input-name" data-empty="<?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?>"><?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?></span>
+                            <input type="file" id="videoThumbInput" accept="image/jpeg,image/png,image/webp"
+                                   data-content-id="<?= $id ?>" data-mode="edit">
+                        </div>
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?= __('video_thumbnail_help', $lang) ?>
                         </p>
@@ -526,6 +614,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?= $lang === 'ar' ? 'ترجمة تلقائية للحقول الفارغة' : ($lang === 'fr' ? 'Traduire automatiquement les champs vides' : 'Auto-translate empty fields') ?>
                                 <span class="text-xs text-white/30">(<?= defined('TRANSLATION_PROVIDER') && strtolower(TRANSLATION_PROVIDER) === 'libretranslate' ? 'LibreTranslate' : 'Google Translate' ?>)</span>
                             </label>
+                            <div class="flex items-center gap-3 mt-2">
+                                <button type="button" id="translateNowBtn"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                                               bg-emerald-600/20 text-emerald-300 border-emerald-500/30
+                                               hover:bg-emerald-600/30">
+                                    <span class="flex items-center gap-1.5">
+                                        <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M7.41 2l-4.5 9h2.08l.8-1.79h4.03l.8 1.79h2.08L9.59 2H7.41zm-.73 5.21L9 4l2.32 3.21H6.68zM2 17h16v2H2v-2zm3-4h10l-1.5 2h-7L5 13z"/></svg>
+                                        <?= $lang === 'ar' ? 'توليد الترجمة الآن' : ($lang === 'fr' ? 'Générer la traduction' : 'Generate translation now') ?>
+                                    </span>
+                                </button>
+                                <span id="translateStatus" class="text-xs text-white/50"></span>
+                            </div>
                         </div>
                         <?php endif; ?>
                     </div>

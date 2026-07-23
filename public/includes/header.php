@@ -13,6 +13,30 @@ require_once ROOT_PATH . '/app/core/i18n.php';
 session_start_secure();
 
 $lang = current_lang();
+
+// Redirect to language-prefixed URL if missing (clean URL support)
+$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$base = APP_BASE_PATH;
+$relative = $base ? substr($requestPath, strlen($base)) : $requestPath;
+$relative = '/' . trim($relative, '/');
+
+$supported = unserialize(SUPPORTED_LANGUAGES);
+$segments = array_values(array_filter(explode('/', trim($relative, '/'))));
+$hasPrefix = !empty($segments) && in_array($segments[0], $supported);
+$isDirectPublic = str_starts_with($relative, '/public/');
+
+if (!$hasPrefix && !$isDirectPublic) {
+    $currentFile = basename($_SERVER['PHP_SELF']);
+    $qs = $_SERVER['QUERY_STRING'] ?? '';
+    if ($currentFile === 'index.php') {
+        header('Location: ' . ($base ? "$base/$lang/" : "/$lang/"), true, 301);
+    } else {
+        $url = ($base ? "$base/$lang/$currentFile" : "/$lang/$currentFile");
+        if ($qs) $url .= '?' . $qs;
+        header('Location: ' . $url, true, 301);
+    }
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= e($lang) ?>" dir="<?= dir_attribute($lang) ?>" data-theme="light">

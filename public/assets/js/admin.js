@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchFilters();
     initGalleryPicker();
     initVideoThumbUpload();
+    initFileInputs();
+    initTranslateButton();
 });
 
 /**
@@ -75,23 +77,53 @@ function initSidebarToggle() {
 }
 
 /**
- * Live slug suggestion from title fields
+ * Live slug suggestion from title fields with date prefix
  */
 function initSlugSuggestions() {
     const titleInputs = document.querySelectorAll('[data-slug-source]');
     const slugInput = document.getElementById('slug');
+    const dateInput = document.querySelector('input[name="published_at"]');
     
     if (!slugInput) return;
     
-    titleInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            // Only auto-generate if slug field is empty or was auto-generated
-            if (slugInput.dataset.auto === 'true' || !slugInput.value) {
-                slugInput.value = slugify(this.value);
-                slugInput.dataset.auto = 'true';
+    function generateSlug() {
+        let title = '';
+        // Find the first filled title field (prioritize Arabic)
+        titleInputs.forEach(input => {
+            if (input.value && !title) {
+                title = input.value;
             }
         });
+        
+        if (!title) return;
+        
+        // Get date from published_at field (format: YYYY-MM-DD)
+        let datePrefix = '';
+        if (dateInput && dateInput.value) {
+            const date = new Date(dateInput.value);
+            if (!isNaN(date.getTime())) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                datePrefix = `${year}-${month}-${day}-`;
+            }
+        }
+        
+        // Only auto-generate if slug field is empty or was auto-generated
+        if (slugInput.dataset.auto === 'true' || !slugInput.value) {
+            slugInput.value = datePrefix + slugify(title);
+            slugInput.dataset.auto = 'true';
+        }
+    }
+    
+    titleInputs.forEach(input => {
+        input.addEventListener('input', generateSlug);
     });
+    
+    // Also regenerate when date changes
+    if (dateInput) {
+        dateInput.addEventListener('change', generateSlug);
+    }
     
     // When user manually edits slug, stop auto-generation
     if (slugInput) {
@@ -102,16 +134,32 @@ function initSlugSuggestions() {
 }
 
 /**
- * Simple slugify function
+ * Slugify function with Arabic transliteration support
  */
 function slugify(text) {
+    // Arabic to Latin transliteration map
+    const arabicMap = {
+        'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'a', 'ء': '',
+        'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h',
+        'خ': 'kh', 'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z',
+        'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'd', 'ط': 't',
+        'ظ': 'z', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q',
+        'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ه': 'h',
+        'و': 'w', 'ي': 'y', 'ى': 'a', 'ة': 'h',
+        'ً': 'an', 'ٌ': 'un', 'ٍ': 'in', 'َ': 'a', 'ُ': 'u', 'ِ': 'i', 'ْ': '', 'ّ': '',
+        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+    };
+    
+    // Transliterate Arabic characters
+    text = text.split('').map(char => arabicMap[char] || char).join('');
+    
     return text
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s-]/g, '')  // Remove non-word chars
-        .replace(/[\s_]+/g, '-')   // Replace spaces/underscores with hyphens
-        .replace(/-+/g, '-')       // Collapse multiple hyphens
-        .replace(/^-|-$/g, '');    // Remove leading/trailing hyphens
+        .replace(/[^\w\s-]/g, '')   // Remove non-word chars
+        .replace(/[\s_]+/g, '-')    // Replace spaces/underscores with hyphens
+        .replace(/-+/g, '-')        // Collapse multiple hyphens
+        .replace(/^-|-$/g, '');     // Remove leading/trailing hyphens
 }
 
 /**
@@ -282,12 +330,146 @@ function toggleSelectAll(source) {
 }
 
 /**
+ * Toggle cover selection for existing gallery images (media_id based).
+ * Sets the hidden radio, updates visual frame + active state.
+ */
+function toggleCover(btn, mediaId, type) {
+    const item = btn.closest('.gallery-item');
+    if (!item) return;
+    if (item.classList.contains('marked-for-delete')) return;
+
+    const container = item.closest('#existingGallery, #galleryPreview');
+    if (container) {
+        container.querySelectorAll('.gallery-item.is-cover').forEach(el => {
+            el.classList.remove('is-cover');
+            const otherBtn = el.querySelector('.gallery-btn-cover');
+            if (otherBtn) otherBtn.classList.remove('is-active');
+        });
+    }
+
+    item.classList.add('is-cover');
+    btn.classList.add('is-active');
+
+    const radio = item.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+}
+
+/**
+ * Mark an existing gallery image for deletion (removed on save).
+ */
+function markExistingForDelete(btn, mediaId) {
+    const item = btn.closest('.gallery-item');
+    if (!item) return;
+
+    // If already marked, restore it
+    if (item.classList.contains('marked-for-delete')) {
+        return restoreExistingImage(btn, mediaId);
+    }
+
+    item.classList.add('marked-for-delete');
+    if (item.classList.contains('is-cover')) {
+        item.classList.remove('is-cover');
+        const coverBtn = item.querySelector('.gallery-btn-cover');
+        if (coverBtn) coverBtn.classList.remove('is-active');
+    }
+
+    // Change button to restore
+    btn.innerHTML =
+        '<svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>';
+
+    // Add hidden input
+    let hidden = document.querySelector('input[name="deleted_media_ids[]"][value="' + mediaId + '"]');
+    if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'deleted_media_ids[]';
+        hidden.value = mediaId;
+        item.appendChild(hidden);
+    }
+
+    // Deselect the hidden radio
+    const radio = item.querySelector('input[type="radio"]');
+    if (radio) radio.checked = false;
+}
+
+/**
+ * Restore an image previously marked for deletion.
+ */
+function restoreExistingImage(btn, mediaId) {
+    const item = btn.closest('.gallery-item');
+    if (!item) return;
+
+    item.classList.remove('marked-for-delete');
+
+    // Change button back to trash
+    btn.innerHTML =
+        '<svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>';
+
+    // Remove hidden input
+    const hidden = item.querySelector('input[name="deleted_media_ids[]"][value="' + mediaId + '"]');
+    if (hidden) hidden.remove();
+}
+
+/**
+ * Toggle cover selection for newly AJAX-uploaded images (path based).
+ */
+function toggleCoverUploaded(btn, path) {
+    const container = btn.closest('#galleryPreview');
+    if (container) {
+        container.querySelectorAll('.gallery-item.is-cover').forEach(el => {
+            el.classList.remove('is-cover');
+            const otherBtn = el.querySelector('.gallery-btn-cover');
+            if (otherBtn) otherBtn.classList.remove('is-active');
+        });
+    }
+
+    const item = btn.closest('.gallery-item');
+    if (!item) return;
+    item.classList.add('is-cover');
+    btn.classList.add('is-active');
+
+    // Uncheck all cover_path radios, then check this one
+    document.querySelectorAll('input[name="cover_path"]').forEach(r => r.checked = false);
+    const radio = item.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+}
+
+/**
+ * Remove a newly AJAX-uploaded image from the preview + hidden fields.
+ */
+function deleteUploadedImage(btn) {
+    const item = btn.closest('.gallery-item');
+    if (!item) return;
+
+    const path = item.dataset.path;
+    if (path) {
+        const fields = document.getElementById('galleryFields');
+        if (fields) {
+            fields.querySelectorAll('input[name="uploaded_images[]"]').forEach(inp => {
+                if (inp.value === path) inp.remove();
+            });
+        }
+    }
+    item.remove();
+
+    // Update counter if present
+    const counter = document.getElementById('galleryCount');
+    const maxInput = document.getElementById('galleryInput');
+    const max = maxInput ? parseInt(maxInput.dataset.max) || 20 : 20;
+    if (counter) {
+        const existingCount = document.querySelectorAll('#existingGallery [data-media-id]').length;
+        const uploadedCount = document.querySelectorAll('#galleryPreview .gallery-item').length;
+        counter.textContent = (existingCount + uploadedCount) + ' / ' + max;
+    }
+}
+
+/**
  * Multi-image gallery picker for content create/edit.
  *
  * Images are uploaded ONE AT A TIME via AJAX to ajax_upload.php (kept small so we
  * never hit OVH's FastCGI request-length limit with one huge multipart POST). Each
  * successful upload returns the saved file path; we store it in a hidden field and
- * offer a "cover" radio. New images are posted as `uploaded_images[]` (paths); the
+ * offer a "cover" button. New images are posted as `uploaded_images[]` (paths); the
  * chosen cover as `cover_path` (new) or `cover_media_id` (existing gallery image).
  */
 function initGalleryPicker() {
@@ -311,6 +493,12 @@ function initGalleryPicker() {
     const errorLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.uploadError)
         ? SEPJ_LABELS.uploadError
         : 'Upload failed';
+    const retryLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.retry)
+        ? SEPJ_LABELS.retry
+        : '⟳ Retry';
+    const deleteConfirmLabel = (typeof SEPJ_LABELS !== 'undefined' && SEPJ_LABELS.deleteConfirm)
+        ? SEPJ_LABELS.deleteConfirm
+        : 'Remove this image?';
 
     // How many images already present (existing gallery + already-uploaded)?
     function currentCount() {
@@ -329,21 +517,33 @@ function initGalleryPicker() {
 
     function makeCell() {
         const cell = document.createElement('div');
-        cell.className = 'relative glass-card overflow-hidden group';
+        cell.className = 'gallery-item';
         return cell;
     }
 
     function appendUploaded(cell, path, url, autoCover) {
+        const escapedPath = path.replace(/'/g, "\\'");
+        cell.dataset.path = path;
+        if (autoCover) cell.classList.add('is-cover');
         cell.innerHTML =
-            '<div class="aspect-square overflow-hidden">' +
-                '<img src="' + url + '" alt="" class="w-full h-full object-cover">' +
+            '<div class="gallery-item-img">' +
+                '<img src="' + url + '" alt="">' +
+                '<span class="gallery-item-badge">' + coverLabel + '</span>' +
             '</div>' +
-            '<label class="flex items-center gap-1 p-1 text-xs text-emerald-200 cursor-pointer">' +
-                '<input type="radio" name="cover_path" value="' + path + '"' + (autoCover ? ' checked' : '') + '>' +
-                coverLabel +
-            '</label>';
+            '<div class="gallery-item-actions">' +
+                '<button type="button" class="gallery-btn gallery-btn-cover' + (autoCover ? ' is-active' : '') + '" onclick="toggleCoverUploaded(this, \'' + escapedPath + '\')">' +
+                    '<svg viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>' +
+                    coverLabel +
+                '</button>' +
+                '<button type="button" class="gallery-btn gallery-btn-delete" onclick="if(confirm(\'' + deleteConfirmLabel.replace(/'/g, "\\'") + '\')){deleteUploadedImage(this);}">' +
+                    '<svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>' +
+                '</button>' +
+            '</div>' +
+            '<input type="radio" name="cover_path" value="' + path + '"' + (autoCover ? ' checked' : '') + ' class="hidden">';
         addHiddenPath(path);
-        if (autoCover && !document.querySelector('input[name="cover_path"]:checked')) {
+        if (autoCover) {
+            // Ensure only one cover_path radio is checked
+            document.querySelectorAll('input[name="cover_path"]').forEach(r => r.checked = false);
             const radio = cell.querySelector('input[type="radio"]');
             if (radio) radio.checked = true;
         }
@@ -363,6 +563,10 @@ function initGalleryPicker() {
         fd.append('subdir', 'content');
         fd.append('csrf_token', (typeof SEPJ_CSRF !== 'undefined' ? SEPJ_CSRF : ''));
 
+        cell._file = file;
+        cell._retry = () => uploadOne(file, cell);
+        cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-emerald-300">' + uploadingLabel + '</div>';
+
         try {
             const resp = await fetch('ajax_upload.php', {
                 method: 'POST',
@@ -374,18 +578,28 @@ function initGalleryPicker() {
             try {
                 data = JSON.parse(text);
             } catch (parseErr) {
-                // Server returned non-JSON (PHP error / 500 page). Surface it.
-                cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br><span class="break-all">' + (text || ('HTTP ' + resp.status)).slice(0, 200) + '</span></div>';
+                showUploadError(cell, text || ('HTTP ' + resp.status));
                 return;
             }
             if (data && data.success) {
+                delete cell._file;
+                delete cell._retry;
                 appendUploaded(cell, data.path, data.url, currentCount() === 1);
             } else {
-                cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br>' + ((data && data.message) || '') + '</div>';
+                showUploadError(cell, (data && data.message) || '');
             }
         } catch (e) {
-            cell.innerHTML = '<div class="aspect-square flex items-center justify-center text-xs text-red-300 p-2 text-center">' + errorLabel + '<br><span class="break-all">' + (e && e.message ? e.message : '') + '</span></div>';
+            showUploadError(cell, (e && e.message ? e.message : ''));
         }
+    }
+
+    function showUploadError(cell, msg) {
+        cell.innerHTML =
+            '<div class="aspect-square flex flex-col items-center justify-center text-xs text-red-300 p-2 text-center">' +
+                '<span class="mb-1 opacity-80">' + errorLabel + '</span>' +
+                '<span class="break-all mb-2 opacity-60">' + msg.slice(0, 150) + '</span>' +
+                '<button type="button" class="gallery-btn gallery-btn-retry" onclick="retryUpload(this)">' + retryLabel + '</button>' +
+            '</div>';
     }
 
     input.addEventListener('change', function() {
@@ -409,6 +623,17 @@ function initGalleryPicker() {
     });
 
     updateCounter();
+}
+
+/**
+ * Retry a failed gallery image upload.
+ * Reads the stored File object and retry callback from the parent cell.
+ */
+function retryUpload(btn) {
+    const cell = btn.closest('.gallery-item');
+    if (cell && cell._file && cell._retry) {
+        cell._retry();
+    }
 }
 
 /**
@@ -480,6 +705,25 @@ function initVideoThumbUpload() {
     });
 }
 
+/**
+ * Custom file input — shows selected filename instead of browser-native "No file chosen" text.
+ */
+function initFileInputs() {
+    document.querySelectorAll('.file-input-wrap input[type="file"]').forEach(input => {
+        const nameSpan = input.closest('.file-input-wrap').querySelector('.file-input-name');
+        if (!nameSpan) return;
+
+        input.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                const names = Array.from(this.files).map(f => f.name).join(', ');
+                nameSpan.textContent = names.length > 40 ? names.slice(0, 37) + '...' : names;
+            } else {
+                nameSpan.textContent = nameSpan.dataset.empty || nameSpan.textContent;
+            }
+        });
+    });
+}
+
 
 function confirmBulkAction(action) {
     const message = {
@@ -536,4 +780,146 @@ function _mediaKeyHandler(e) {
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
+}
+
+function _detectSourceLanguage() {
+    const langs = ['ar', 'fr', 'en'];
+    let bestLang = null, bestScore = 0;
+    for (const lang of langs) {
+        let score = 0;
+        if (document.querySelector(`[name="title_${lang}"]`)?.value?.trim()) score++;
+        if (document.querySelector(`[name="summary_${lang}"]`)?.value?.trim()) score++;
+        if (document.querySelector(`[name="body_${lang}"]`)?.value?.trim()) score++;
+        if (score > bestScore) { bestScore = score; bestLang = lang; }
+    }
+    return bestLang;
+}
+
+function _getTexts(lang) {
+    if (lang === 'ar') return {
+        generating: 'جاري الترجمة...',
+        button: 'توليد الترجمة الآن',
+        done: 'اكتملت الترجمة',
+        none: 'لا توجد حقول فارغة للترجمة',
+        error: 'فشلت الترجمة',
+        translated: (n) => `تمت ترجمة ${n} ${n === 1 ? 'حقل' : 'حقول'}`
+    };
+    if (lang === 'fr') return {
+        generating: 'Traduction en cours...',
+        button: 'Générer la traduction',
+        done: 'Traduction terminée',
+        none: 'Aucun champ vide à traduire',
+        error: 'Échec de la traduction',
+        translated: (n) => `${n} champ${n > 1 ? 's' : ''} traduit${n > 1 ? 's' : ''}`
+    };
+    return {
+        generating: 'Translating...',
+        button: 'Generate translation now',
+        done: 'Translation complete',
+        none: 'No empty fields to translate',
+        error: 'Translation failed',
+        translated: (n) => `${n} field${n > 1 ? 's' : ''} translated`
+    };
+}
+
+function translateEmptyFields() {
+    const btn = document.getElementById('translateNowBtn');
+    const status = document.getElementById('translateStatus');
+    const uiLang = document.documentElement.lang || 'en';
+    const t = _getTexts(uiLang);
+
+    const sourceLang = _detectSourceLanguage();
+    if (!sourceLang) {
+        if (status) { status.textContent = t.error; status.className = 'text-xs text-red-400 mt-1'; }
+        return;
+    }
+
+    const targetLangs = ['ar', 'fr', 'en'].filter(l => l !== sourceLang);
+    const fieldNames = ['title', 'summary', 'body'];
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+
+    if (!csrfToken) {
+        if (status) { status.textContent = t.error; status.className = 'text-xs text-red-400 mt-1'; }
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = t.generating;
+    if (status) { status.textContent = t.generating; status.className = 'text-xs text-emerald-400 mt-1'; }
+
+    let translatedCount = 0;
+    let errorCount = 0;
+    const promises = [];
+
+    for (const targetLang of targetLangs) {
+        for (const field of fieldNames) {
+            const sourceEl = document.querySelector(`[name="${field}_${sourceLang}"]`);
+            const targetEl = document.querySelector(`[name="${field}_${targetLang}"]`);
+
+            if (!sourceEl || !targetEl) continue;
+
+            const sourceText = sourceEl.value.trim();
+            const targetText = targetEl.value.trim();
+
+            if (!sourceText || targetText) continue;
+
+            const isHtml = field === 'body';
+
+            promises.push(
+                fetch('ajax/translate.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: sourceText,
+                        source: sourceLang,
+                        target: targetLang,
+                        html: isHtml,
+                        csrf_token: csrfToken
+                    })
+                })
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.translatedText && data.translatedText !== sourceText) {
+                        targetEl.value = data.translatedText;
+                        translatedCount++;
+                        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+                        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                })
+                .catch(() => { errorCount++; })
+            );
+        }
+    }
+
+    Promise.allSettled(promises).then(() => {
+        btn.disabled = false;
+        btn.textContent = t.button;
+
+        if (status) {
+            if (translatedCount > 0) {
+                status.textContent = t.translated(translatedCount) + (errorCount > 0 ? ` (${errorCount} ${uiLang === 'ar' ? 'فشل' : uiLang === 'fr' ? 'échec(s)' : 'failed'})` : '');
+                status.className = 'text-xs text-emerald-400 mt-1';
+            } else if (errorCount > 0) {
+                status.textContent = t.error;
+                status.className = 'text-xs text-red-400 mt-1';
+            } else {
+                status.textContent = t.none;
+                status.className = 'text-xs text-white/50 mt-1';
+            }
+        }
+    });
+}
+
+function initTranslateButton() {
+    const btn = document.getElementById('translateNowBtn');
+    if (!btn) return;
+    btn.addEventListener('click', translateEmptyFields);
+}
+
+function togglePassword(btn) {
+    var input = btn.parentElement.querySelector('input');
+    var isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    btn.querySelector('.pw-eye').classList.toggle('hidden');
+    btn.querySelector('.pw-eye-off').classList.toggle('hidden');
 }

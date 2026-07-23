@@ -58,7 +58,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $lang === 'ar' ? 'الوسائط' : ($lang === 'fr' ? 'Médias' : 'Media') ?> - <?= e(APP_NAME) ?></title>
+    <title><?= $lang === 'ar' ? 'الصور' : ($lang === 'fr' ? 'Médias' : 'Media') ?> - <?= e(APP_NAME) ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../public/assets/css/style.css">
 </head>
@@ -67,11 +67,11 @@ try {
     <div class="blob blob-2"></div>
     <div class="relative z-10 flex h-screen">
         <?php include '../includes/sidebar.php'; ?>
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden pt-16">
             <?php include '../includes/header.php'; ?>
             <main class="flex-1 overflow-y-auto p-6">
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-                    <h1 class="text-2xl font-bold text-white">🖼️ <?= $lang === 'ar' ? 'مكتبة الوسائط' : ($lang === 'fr' ? 'Médiathèque' : 'Media Library') ?></h1>
+                    <h1 class="text-2xl font-bold text-white">🖼️ <?= $lang === 'ar' ? 'مكتبة الصور' : ($lang === 'fr' ? 'Médiathèque' : 'Media Library') ?></h1>
                     <a href="upload.php" class="glass-btn">+ <?= $lang === 'ar' ? 'رفع' : ($lang === 'fr' ? 'Télécharger' : 'Upload') ?></a>
                 </div>
                 

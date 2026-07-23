@@ -1,6 +1,6 @@
 <?php
-// Only redirect to the public site for non-admin, non-public requests.
-// Admin paths (/admin) and already-public paths (/public) must pass through.
+// Fallback: redirect to public/ when mod_rewrite is not available.
+// The .htaccess file handles clean URLs on production.
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 if (str_starts_with($requestUri, '/admin') || str_starts_with($requestUri, '/public')) {
     return;

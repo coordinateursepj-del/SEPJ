@@ -156,15 +156,10 @@ body {
     color: var(--text-strong);
 }
 
-/* Admin pages use this class instead of the old hardcoded dark gradient so the
-   background follows the light/dark theme toggle. Default (light) inherits the
-   warm-paper body rule below; dark restores the original forest-night gradient. */
-.admin-theme-bg[data-theme="dark"] {
-    background-color: #0b1712;
-    background-image: linear-gradient(135deg, #0b1712 0%, #123524 50%, #0b1712 100%);
-}
-.admin-theme-bg:not([data-theme]),
-.admin-theme-bg:not([data-theme="light"]):not([data-theme="dark"]) {
+/* Admin body background: uses descendant selectors so data-theme on <html>
+   controls the background correctly. Light mode inherits [data-theme="light"] body;
+   dark/default mode applies the forest-night gradient below. */
+html:not([data-theme="light"]) .admin-theme-bg {
     background-color: #0b1712;
     background-image: linear-gradient(135deg, #0b1712 0%, #123524 50%, #0b1712 100%);
 }
@@ -433,21 +428,17 @@ body {
     backdrop-filter: blur(20px) saturate(1.2);
     -webkit-backdrop-filter: blur(20px) saturate(1.2);
     border-bottom: 1px solid var(--border);
+    border-radius: 0;
 }
 
 .navbar.scrolled {
     background: var(--navbar-bg-scrolled);
     box-shadow: var(--shadow-card);
-}
-
-@media (min-width: 768px) {
-    .navbar.scrolled {
-        top: 0.75rem;
-        left: 1.5rem;
-        right: 1.5rem;
-        border-radius: var(--radius-full);
-        border-color: var(--border-strong);
-    }
+    top: 0.75rem;
+    left: 4rem;
+    right: 4rem;
+    border-radius: 32px;
+    border-color: var(--border-strong);
 }
 
 .nav-link {
@@ -2346,14 +2337,14 @@ body,
 
 /* Navbar needs extra geometric properties for floating pill transition */
 .navbar {
-    transition: background-color 0.3s ease,
-                border-color 0.3s ease,
-                box-shadow 0.3s ease,
-                background 0.3s ease,
-                top 0.4s cubic-bezier(0.4,0,0.2,1),
-                left 0.4s cubic-bezier(0.4,0,0.2,1),
-                right 0.4s cubic-bezier(0.4,0,0.2,1),
-                border-radius 0.4s cubic-bezier(0.4,0,0.2,1);
+    transition: background-color 0.35s ease,
+                border-color 0.35s ease,
+                box-shadow 0.35s ease,
+                background 0.35s ease,
+                top 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                left 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                right 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                border-radius 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ============================================================
@@ -2662,6 +2653,11 @@ body,
 [data-theme="light"] .text-blue-300,
 [data-theme="light"] .text-blue-400    { color: #2563EB !important; }
 [data-theme="light"] .text-gray-300    { color: #4B5563 !important; }
+[data-theme="light"] .text-emerald-300\/70 { color: #1F5C43 !important; }
+[data-theme="light"] .text-emerald-300\/75 { color: #1F5C43 !important; }
+[data-theme="light"] .text-emerald-300\/80 { color: #143C2C !important; }
+[data-theme="light"] .text-emerald-300\/85 { color: #143C2C !important; }
+[data-theme="light"] .text-emerald-300\/90 { color: #0F2E22 !important; }
 
 [data-theme="light"] .bg-green-500\/20   { background-color: rgba(31, 122, 69, 0.14)  !important; }
 [data-theme="light"] .bg-yellow-500\/20  { background-color: rgba(183, 121, 31, 0.16) !important; }
@@ -2698,4 +2694,275 @@ body,
 [data-theme="light"] .border-white\/20 { border-color: rgba(20, 52, 42, 0.16) !important; }
 
 /* Tables: row hover + divider stay subtle on light */
-[data-theme="light"] .hover\:bg-white\/5:hover { background-color: var(--brand-soft) !important; }
+[data-theme="light"] .hover\:bg-white\/5:hover { background-color: rgba(31, 92, 67, 0.10) !important; }
+
+/* Sidebar bottom nav (View site / Logout) & header logout icon: visible in light mode */
+[data-theme="light"] .text-white\/50 { color: var(--text-muted) !important; }
+
+/* Language dropdown: light surface instead of dark gray */
+[data-theme="light"] .bg-gray-900\/95 { background-color: var(--surface-2) !important; }
+
+/* Header logout icon: muted red default, neon red glow on hover in both modes */
+.logout-icon-btn {
+    color: rgba(200, 80, 80, 0.65) !important;
+    transition: color 0.2s ease, filter 0.2s ease !important;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+}
+.logout-icon-btn:hover {
+    color: #ff4444 !important;
+    filter: drop-shadow(0 0 6px rgba(255, 60, 60, 0.55)) drop-shadow(0 0 14px rgba(255, 60, 60, 0.25));
+}
+.logout-icon-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* ============================================================
+   GALLERY ITEM — cover frame + action buttons
+   ============================================================ */
+.gallery-item {
+    position: relative;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 2.5px solid transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.04);
+}
+.gallery-item.is-cover {
+    border-color: #10b981;
+    box-shadow: 0 0 0 1px #10b981, 0 4px 16px rgba(16, 185, 129, 0.25);
+}
+.gallery-item-img {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1;
+}
+.gallery-item-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.gallery-item-badge {
+    display: none;
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(16, 185, 129, 0.92);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 5px;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(4px);
+}
+.gallery-item.is-cover .gallery-item-badge {
+    display: block;
+}
+.gallery-item-actions {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 4px;
+    background: rgba(0, 0, 0, 0.2);
+}
+.gallery-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1;
+    font-family: inherit;
+    text-decoration: none;
+}
+.gallery-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+.gallery-btn-cover.is-active,
+.gallery-btn-cover:hover {
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.35);
+    background: rgba(52, 211, 153, 0.1);
+}
+.gallery-btn-delete:hover {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.1);
+}
+.gallery-btn-retry {
+    color: #fbbf24 !important;
+    border-color: rgba(251, 191, 36, 0.35) !important;
+    background: rgba(251, 191, 36, 0.12) !important;
+    font-size: 0.75rem !important;
+    padding: 4px 14px !important;
+}
+.gallery-btn-retry:hover {
+    color: #f59e0b !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    background: rgba(251, 191, 36, 0.2) !important;
+}
+[data-theme="light"] .gallery-btn-retry {
+    color: #d97706 !important;
+    border-color: rgba(217, 119, 6, 0.3) !important;
+    background: rgba(217, 119, 6, 0.08) !important;
+}
+[data-theme="light"] .gallery-btn-retry:hover {
+    color: #b45309 !important;
+    border-color: rgba(180, 83, 9, 0.4) !important;
+    background: rgba(217, 119, 6, 0.15) !important;
+}
+.gallery-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+.gallery-item.marked-for-delete {
+    opacity: 0.5;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 1px #ef4444, 0 4px 16px rgba(239, 68, 68, 0.2) !important;
+}
+.gallery-item.marked-for-delete .gallery-item-img::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(239, 68, 68, 0.15);
+    border-radius: 0.5rem;
+    pointer-events: none;
+}
+.gallery-item-delete-badge {
+    display: none;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(239, 68, 68, 0.92);
+    color: #fff;
+    font-size: 0.55rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+}
+.gallery-item.marked-for-delete .gallery-item-delete-badge {
+    display: block;
+}
+.gallery-btn-restore {
+    color: #fbbf24 !important;
+    border-color: rgba(251, 191, 36, 0.35) !important;
+    background: rgba(251, 191, 36, 0.1) !important;
+}
+.gallery-btn-restore:hover {
+    color: #f59e0b !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    background: rgba(251, 191, 36, 0.2) !important;
+}
+/* Light-mode overrides for gallery items */
+[data-theme="light"] .gallery-item {
+    background: rgba(0, 0, 0, 0.02);
+}
+[data-theme="light"] .gallery-item.is-cover {
+    border-color: #059669;
+    box-shadow: 0 0 0 1px #059669, 0 4px 16px rgba(5, 150, 105, 0.2);
+}
+[data-theme="light"] .gallery-item-badge {
+    background: rgba(5, 150, 105, 0.92);
+}
+[data-theme="light"] .gallery-item-actions {
+    background: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .gallery-btn {
+    color: rgba(0, 0, 0, 0.55);
+    border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.7);
+}
+[data-theme="light"] .gallery-btn:hover {
+    background: #fff;
+    color: rgba(0, 0, 0, 0.8);
+}
+[data-theme="light"] .gallery-btn-cover.is-active,
+[data-theme="light"] .gallery-btn-cover:hover {
+    color: #059669;
+    border-color: rgba(5, 150, 105, 0.3);
+    background: rgba(5, 150, 105, 0.08);
+}
+[data-theme="light"] .gallery-btn-delete:hover {
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.3);
+    background: rgba(220, 38, 38, 0.08);
+}
+
+/* ============================================================
+   CUSTOM FILE INPUT — hides browser-native "No file chosen" text
+   ============================================================ */
+.file-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.file-input-wrap input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+.file-input-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    background: rgba(5, 150, 105, 0.2);
+    color: #34d399;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+}
+.file-input-btn:hover,
+.file-input-wrap:hover .file-input-btn {
+    background: rgba(5, 150, 105, 0.3);
+}
+.file-input-name {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+[data-theme="light"] .file-input-btn {
+    background: rgba(5, 150, 105, 0.1);
+    color: #059669;
+    border-color: rgba(5, 150, 105, 0.2);
+}
+[data-theme="light"] .file-input-btn:hover,
+[data-theme="light"] .file-input-wrap:hover .file-input-btn {
+    background: rgba(5, 150, 105, 0.15);
+}
+[data-theme="light"] .file-input-name {
+    color: rgba(0, 0, 0, 0.4);
+}

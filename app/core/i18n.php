@@ -303,7 +303,7 @@ function get_translations(): array
             'en' => 'Services',
         ],
         'content_media' => [
-            'ar' => 'الوسائط',
+            'ar' => 'الصور',
             'fr' => 'Médias',
             'en' => 'Media',
         ],

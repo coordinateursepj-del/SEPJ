@@ -436,7 +436,8 @@ function initStatCounters() {
             function step(now) {
                 const p = Math.min((now - start) / duration, 1);
                 const ease = 1 - Math.pow(1 - p, 3);
-                el.textContent = Math.round(target * ease).toLocaleString() + suffix;
+                const formatted = el.dataset.locale !== 'false' ? Math.round(target * ease).toLocaleString() : Math.round(target * ease).toString();
+                el.textContent = formatted + suffix;
                 if (p < 1) requestAnimationFrame(step);
             }
             requestAnimationFrame(step);

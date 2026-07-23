@@ -66,7 +66,7 @@ $address = get_setting('address', $lang);
         <div class="max-w-7xl mx-auto px-4">
             <h2 class="section-title section-title-center text-center"><?= __('our_stats', $lang) ?></h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="glass-card stat-card"><div class="stat-number" data-count="<?= e(get_setting('stat_founded_value')) ?>"><?= e(get_setting('stat_founded_value')) ?></div><div class="stat-label"><?= e(get_setting('stat_founded_label', $lang) ?: __('founded', $lang)) ?></div></div>
+                <div class="glass-card stat-card"><div class="stat-number" data-count="<?= e(get_setting('stat_founded_value')) ?>" data-locale="false"><?= e(get_setting('stat_founded_value')) ?></div><div class="stat-label"><?= e(get_setting('stat_founded_label', $lang) ?: __('founded', $lang)) ?></div></div>
                 <div class="glass-card stat-card"><div class="stat-number" data-count="<?= e(get_setting('stat_trees_value')) ?>" data-suffix="+"><?= e(get_setting('stat_trees_value')) ?>+</div><div class="stat-label"><?= __('trees_planted', $lang) ?></div></div>
                 <div class="glass-card stat-card"><div class="stat-number" data-count="<?= e(get_setting('stat_hectares_value')) ?>" data-suffix="+"><?= e(get_setting('stat_hectares_value')) ?>+</div><div class="stat-label"><?= __('hectares_transformed', $lang) ?></div></div>
                 <div class="glass-card stat-card"><div class="stat-number" data-count="<?= e(get_setting('stat_activation_value')) ?>"><?= e(get_setting('stat_activation_value')) ?></div><div class="stat-label"><?= __('activation_rate', $lang) ?> <?= e(get_setting('stat_activation_year')) ?></div></div>

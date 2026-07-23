@@ -70,7 +70,7 @@ try {
     // Fetch items
     $stmt = $pdo->prepare("
         SELECT id, type, slug, 
-               COALESCE(NULLIF(title_ar, ''), NULLIF(title_fr, ''), NULLIF(title_en, ''), '---') AS title,
+               COALESCE(NULLIF(title_{$lang}, ''), NULLIF(title_ar, ''), NULLIF(title_fr, ''), NULLIF(title_en, ''), '---') AS title,
                rse_category, status, is_featured, featured_image, published_at, created_at, updated_at
         FROM content_items 
         {$where}
@@ -110,7 +110,7 @@ try {
     <div class="relative z-10 flex h-screen">
         <?php include '../includes/sidebar.php'; ?>
         
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden pt-16">
             <?php include '../includes/header.php'; ?>
             
             <main class="flex-1 overflow-y-auto p-6">
@@ -228,13 +228,13 @@ try {
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="border-b border-white/10 text-emerald-300/70">
-                                    <th class="text-right p-3 font-medium">
+                                    <th class="text-start p-3 font-medium">
                                         <?php if ($lang === 'ar'): ?>العنوان
                                         <?php elseif ($lang === 'fr'): ?>Titre
                                         <?php else: ?>Title
                                         <?php endif; ?>
                                     </th>
-                                    <th class="text-right p-3 font-medium hidden md:table-cell">
+                                    <th class="text-start p-3 font-medium hidden md:table-cell">
                                         <?php if ($lang === 'ar'): ?>الرابط
                                         <?php elseif ($lang === 'fr'): ?>Slug
                                         <?php else: ?>Slug
@@ -297,7 +297,7 @@ try {
                                     </td>
                                     <?php endif; ?>
                                     <td class="p-3 text-center">
-                                        <?= status_badge($item['status']) ?>
+                                        <?= status_badge($item['status'], $lang) ?>
                                     </td>
                                     <td class="p-3 text-center hidden lg:table-cell">
                                         <?php if ($item['is_featured']): ?>

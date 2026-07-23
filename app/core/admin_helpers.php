@@ -69,8 +69,19 @@ function content_admin_url(string $type, string $action = 'index'): string
 /**
  * Generate HTML for a status badge
  */
-function status_badge(string $status): string
+function status_badge(string $status, ?string $lang = null): string
 {
+    // Use English as fallback label for unknown statuses
+    $labels = [
+        'published' => ['ar' => 'منشور',   'fr' => 'Publié',     'en' => 'Published'],
+        'draft'     => ['ar' => 'مسودة',   'fr' => 'Brouillon',  'en' => 'Draft'],
+        'new'       => ['ar' => 'جديد',    'fr' => 'Nouveau',    'en' => 'New'],
+        'read'      => ['ar' => 'مقروء',   'fr' => 'Lu',         'en' => 'Read'],
+        'archived'  => ['ar' => 'مؤرشف',  'fr' => 'Archivé',    'en' => 'Archived'],
+        'active'    => ['ar' => 'نشط',     'fr' => 'Actif',      'en' => 'Active'],
+        'inactive'  => ['ar' => 'غير نشط', 'fr' => 'Inactif',    'en' => 'Inactive'],
+    ];
+
     $classes = [
         'published' => 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
         'draft'     => 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
@@ -80,10 +91,12 @@ function status_badge(string $status): string
         'active'    => 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
         'inactive'  => 'bg-gray-500/20 text-gray-300 border-gray-500/30',
     ];
-    
-    $class = $classes[$status] ?? 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-    
-    return '<span class="inline-block px-2 py-0.5 text-xs rounded-full border ' . $class . '">' . e($status) . '</span>';
+
+    $lang    = $lang ?? current_lang();
+    $class   = $classes[$status] ?? 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+    $label   = $labels[$status][$lang] ?? $labels[$status]['en'] ?? e($status);
+
+    return '<span class="inline-block px-2 py-0.5 text-xs rounded-full border ' . $class . '">' . e($label) . '</span>';
 }
 
 /**
@@ -150,13 +163,28 @@ function rse_category_label(?string $category, string $lang = 'ar'): string
 
 /**
  * Generate slug suggestion from text
+ * Supports Arabic transliteration to Latin characters
  */
 function slugify(string $text): string
 {
-    // Convert to lowercase, replace spaces and special chars
-    $text = mb_strtolower($text, 'UTF-8');
+    // Arabic to Latin transliteration map
+    $arabicMap = [
+        'ا' => 'a', 'أ' => 'a', 'إ' => 'i', 'آ' => 'a', 'ء' => '',
+        'ب' => 'b', 'ت' => 't', 'ث' => 'th', 'ج' => 'j', 'ح' => 'h',
+        'خ' => 'kh', 'د' => 'd', 'ذ' => 'dh', 'ر' => 'r', 'ز' => 'z',
+        'س' => 's', 'ش' => 'sh', 'ص' => 's', 'ض' => 'd', 'ط' => 't',
+        'ظ' => 'z', 'ع' => 'a', 'غ' => 'gh', 'ف' => 'f', 'ق' => 'q',
+        'ك' => 'k', 'ل' => 'l', 'م' => 'm', 'ن' => 'n', 'ه' => 'h',
+        'و' => 'w', 'ي' => 'y', 'ى' => 'a', 'ة' => 'h',
+        'ً' => 'an', 'ٌ' => 'un', 'ٍ' => 'in', 'َ' => 'a', 'ُ' => 'u', 'ِ' => 'i', 'ْ' => '', 'ّ' => '',
+        '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+    ];
     
-    // Replace non-alphanumeric characters with hyphens
+    // Convert Arabic characters
+    $text = strtr($text, $arabicMap);
+    
+    // Convert to lowercase, replace spaces and special chars with hyphens
+    $text = mb_strtolower($text, 'UTF-8');
     $text = preg_replace('/[^a-z0-9\-]/', '-', $text);
     $text = preg_replace('/-+/', '-', $text);
     $text = trim($text, '-');

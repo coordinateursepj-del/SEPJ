@@ -41,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="blob blob-1"></div><div class="blob blob-2"></div>
 <div class="relative z-10 flex h-screen">
 <?php include '../includes/sidebar.php'; ?>
-<div class="flex-1 flex flex-col overflow-hidden">
-<?php include '../includes/header.php'; ?>
+    <div class="flex-1 flex flex-col overflow-hidden pt-16">
+        <?php include '../includes/header.php'; ?>
 <main class="flex-1 overflow-y-auto p-6">
 <h1 class="text-2xl font-bold text-white mb-6">✏️ <?= $lang==='ar'?'تعديل الصورة':($lang==='fr'?'Modifier':'Edit Image') ?></h1>
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

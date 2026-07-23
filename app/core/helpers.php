@@ -50,7 +50,7 @@ function redirect(string $path): void
 }
 
 /**
- * Get current language from URL parameter, session, or default
+ * Get current language from URL parameter, URL path prefix, session, or default
  */
 function current_lang(): string
 {
@@ -59,6 +59,16 @@ function current_lang(): string
     if (isset($_GET['lang']) && in_array($_GET['lang'], $supported)) {
         $_SESSION['lang'] = $_GET['lang'];
         return $_GET['lang'];
+    }
+    
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $base = APP_BASE_PATH;
+    $relativePath = $base ? substr($path, strlen($base)) : $path;
+    $relativePath = trim($relativePath, '/');
+    $first = explode('/', $relativePath)[0] ?? '';
+    if (in_array($first, $supported)) {
+        $_SESSION['lang'] = $first;
+        return $first;
     }
     
     if (isset($_SESSION['lang']) && in_array($_SESSION['lang'], $supported)) {
@@ -268,24 +278,41 @@ function youtube_thumbnail_url(string $url, ?string $customImage = null): ?strin
  */
 function lang_url(string $lang): string
 {
-    $currentFile = basename($_SERVER['PHP_SELF']);
-    $queryString = $_SERVER['QUERY_STRING'] ?? '';
-    
-    // Parse current query parameters
-    parse_str($queryString, $params);
-    
-    // Update language parameter
-    $params['lang'] = $lang;
-    
-    // Rebuild query string
-    $newQueryString = http_build_query($params);
-    
-    // Build the new URL
-    if ($newQueryString) {
-        return $currentFile . '?' . $newQueryString;
+    $supported = unserialize(SUPPORTED_LANGUAGES);
+    if (!in_array($lang, $supported)) {
+        $lang = current_lang();
     }
     
-    return $currentFile;
+    $currentFile = basename($_SERVER['PHP_SELF']);
+    $queryString = $_SERVER['QUERY_STRING'] ?? '';
+    parse_str($queryString, $params);
+    
+    // Detect whether current URL already uses language-prefix format
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $base = APP_BASE_PATH;
+    $relativePath = $base ? substr($path, strlen($base)) : $path;
+    $relativePath = trim($relativePath, '/');
+    $first = explode('/', $relativePath)[0] ?? '';
+    $usesPrefix = in_array($first, $supported);
+    
+    // On production (no base path) always use clean URLs.
+    // On localhost, use clean URLs only if the current page already has a prefix.
+    if ($usesPrefix || !$base) {
+        unset($params['lang']);
+        $url = ($base ? "$base/$lang/$currentFile" : "/$lang/$currentFile");
+        if (!empty($params)) {
+            $url .= '?' . http_build_query($params);
+        }
+        return $url;
+    }
+    
+    // Fallback to query-parameter format (e.g. localhost with no mod_rewrite)
+    $params['lang'] = $lang;
+    $url = $currentFile;
+    if (!empty($params)) {
+        $url .= '?' . http_build_query($params);
+    }
+    return $url;
 }
 
 /**

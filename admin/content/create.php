@@ -47,10 +47,26 @@ $item = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     
-    $item['slug'] = slugify(trim($_POST['slug'] ?? ''));
     $item['title_ar'] = trim($_POST['title_ar'] ?? '');
     $item['title_fr'] = trim($_POST['title_fr'] ?? '');
     $item['title_en'] = trim($_POST['title_en'] ?? '');
+    
+    // Auto-generate slug from date + title if empty
+    $slugInput = trim($_POST['slug'] ?? '');
+    if ($slugInput === '') {
+        $datePrefix = '';
+        if (!empty($_POST['published_at'])) {
+            $dt = DateTime::createFromFormat('Y-m-d\TH:i', $_POST['published_at']);
+            if ($dt) {
+                $datePrefix = $dt->format('Y-m-d-');
+            }
+        }
+        $titleForSlug = $item['title_ar'] ?: $item['title_fr'] ?: $item['title_en'] ?: '';
+        if ($titleForSlug) {
+            $slugInput = $datePrefix . $titleForSlug;
+        }
+    }
+    $item['slug'] = slugify($slugInput);
     $item['summary_ar'] = trim($_POST['summary_ar'] ?? '');
     $item['summary_fr'] = trim($_POST['summary_fr'] ?? '');
     $item['summary_en'] = trim($_POST['summary_en'] ?? '');
@@ -228,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="relative z-10 flex h-screen">
         <?php include '../includes/sidebar.php'; ?>
         
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden pt-16">
             <?php include '../includes/header.php'; ?>
             
             <main class="flex-1 overflow-y-auto p-6">
@@ -346,9 +362,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="block text-sm font-medium text-emerald-200 mb-2">
                             <?= __('video_thumbnail', $lang) ?>
                         </label>
-                        <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp"
-                               data-max="1" data-content-id="0" data-mode="create"
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <div class="file-input-wrap">
+                            <span class="file-input-btn">
+                                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                                <?= $lang === 'ar' ? 'اختر صور' : ($lang === 'fr' ? 'Choisir' : 'Browse') ?>
+                            </span>
+                            <span class="file-input-name" data-empty="<?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?>"><?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?></span>
+                            <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp"
+                                   data-max="1" data-content-id="0" data-mode="create">
+                        </div>
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?= __('video_thumbnail_help', $lang) ?>
                         </p>
@@ -362,9 +384,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="block text-sm font-medium text-emerald-200 mb-2">
                             <?= __('article_images', $lang) ?> (<?= $lang === 'ar' ? 'حتى ' . MAX_GALLERY_IMAGES . ' صورة' : ($lang === 'fr' ? 'max ' . MAX_GALLERY_IMAGES : 'up to ' . MAX_GALLERY_IMAGES) ?>)
                         </label>
-                        <input type="file" id="galleryInput" multiple accept="image/jpeg,image/png,image/webp"
-                               data-max="<?= MAX_GALLERY_IMAGES ?>" data-content-id="0" data-mode="create"
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <div class="file-input-wrap">
+                            <span class="file-input-btn">
+                                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                                <?= $lang === 'ar' ? 'اختر صور' : ($lang === 'fr' ? 'Choisir' : 'Browse') ?>
+                            </span>
+                            <span class="file-input-name" data-empty="<?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?>"><?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?></span>
+                            <input type="file" id="galleryInput" multiple accept="image/jpeg,image/png,image/webp"
+                                   data-max="<?= MAX_GALLERY_IMAGES ?>" data-content-id="0" data-mode="create">
+                        </div>
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?php if ($lang === 'ar'): ?>تُرفع كل صورة على حدة. الصورة المحددة كـ "غلاف" تظهر في القوائم.
                             <?php elseif ($lang === 'fr'): ?>Chaque image est envoyée séparément. Celle marquée « couverture » apparaît dans les listes.
@@ -415,9 +443,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="block text-sm font-medium text-emerald-200 mb-2 mt-4">
                             <?= __('video_thumbnail', $lang) ?>
                         </label>
-                        <input type="file" id="videoThumbInput" accept="image/jpeg,image/png,image/webp"
-                               data-content-id="0" data-mode="create"
-                               class="block w-full text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600/30 file:text-emerald-300 hover:file:bg-emerald-600/40">
+                        <div class="file-input-wrap">
+                            <span class="file-input-btn">
+                                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+                                <?= $lang === 'ar' ? 'اختر صور' : ($lang === 'fr' ? 'Choisir' : 'Browse') ?>
+                            </span>
+                            <span class="file-input-name" data-empty="<?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?>"><?= $lang === 'ar' ? 'لم يتم اختيار ملف' : ($lang === 'fr' ? 'Aucun fichier' : 'No file chosen') ?></span>
+                            <input type="file" id="videoThumbInput" accept="image/jpeg,image/png,image/webp"
+                                   data-content-id="0" data-mode="create">
+                        </div>
                         <p class="text-xs text-emerald-300/40 mt-1">
                             <?= __('video_thumbnail_help', $lang) ?>
                         </p>
@@ -507,6 +541,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php endif; ?>
                                 <span class="text-xs text-white/30">(<?= defined('TRANSLATION_PROVIDER') && strtolower(TRANSLATION_PROVIDER) === 'libretranslate' ? 'LibreTranslate' : 'Google Translate' ?>)</span>
                             </label>
+                            <div class="flex items-center gap-3 mt-2">
+                                <button type="button" id="translateNowBtn"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                                               bg-emerald-600/20 text-emerald-300 border-emerald-500/30
+                                               hover:bg-emerald-600/30">
+                                    <span class="flex items-center gap-1.5">
+                                        <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M7.41 2l-4.5 9h2.08l.8-1.79h4.03l.8 1.79h2.08L9.59 2H7.41zm-.73 5.21L9 4l2.32 3.21H6.68zM2 17h16v2H2v-2zm3-4h10l-1.5 2h-7L5 13z"/></svg>
+                                        <?php if ($lang === 'ar'): ?>توليد الترجمة الآن
+                                        <?php elseif ($lang === 'fr'): ?>Générer la traduction
+                                        <?php else: ?>Generate translation now
+                                        <?php endif; ?>
+                                    </span>
+                                </button>
+                                <span id="translateStatus" class="text-xs text-white/50"></span>
+                            </div>
                         </div>
                         <?php endif; ?>
                     </div>

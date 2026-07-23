@@ -103,7 +103,7 @@ $menuItems = [
         'icon' => '🎥',
     ],
     'media' => [
-        'label_ar' => 'الوسائط',
+        'label_ar' => 'الصور',
         'label_fr' => 'Médias',
         'label_en' => 'Media',
         'url' => 'media/',
@@ -162,9 +162,9 @@ function isMenuItemActive(array $item): bool
 <!-- Sidebar -->
 <aside id="adminSidebar" class="w-64 bg-white/5 backdrop-blur-md border-l border-white/10 flex flex-col shrink-0 overflow-y-auto transition-all duration-300">
     <!-- Logo -->
-    <div class="p-4 border-b border-white/10">
-        <h2 class="text-lg font-bold text-white"><?= e(APP_NAME) ?></h2>
-        <p class="text-xs text-emerald-300/60 truncate">
+    <div class="px-4 py-3 border-b border-white/10 flex flex-col justify-center">
+            <h2 class="text-lg font-bold text-white leading-tight"><?= e(APP_NAME) ?></h2>
+            <p class="text-xs text-emerald-300/60 truncate leading-tight">
             <?php if ($lang === 'ar'): ?>لوحة الإدارة
             <?php elseif ($lang === 'fr'): ?>Panneau d'administration
             <?php else: ?>Admin Panel
