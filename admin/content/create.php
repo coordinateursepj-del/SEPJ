@@ -545,7 +545,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php elseif ($lang === 'fr'): ?>Traduire automatiquement les champs vides
                                 <?php else: ?>Auto-translate empty fields
                                 <?php endif; ?>
-                                <span class="text-xs text-white/30">(<?= defined('TRANSLATION_PROVIDER') && strtolower(TRANSLATION_PROVIDER) === 'libretranslate' ? 'LibreTranslate' : 'Google Translate' ?>)</span>
+                                <span class="text-xs text-white/30">(<?php $trp = defined('TRANSLATION_PROVIDER') ? strtolower(TRANSLATION_PROVIDER) : 'google'; echo $trp === 'gemini' ? 'Gemini' : ($trp === 'libretranslate' ? 'LibreTranslate' : 'Google Translate') ?>)</span>
                             </label>
                             <div class="flex items-center gap-3 mt-2">
                                 <button type="button" id="translateNowBtn"

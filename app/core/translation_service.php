@@ -87,6 +87,78 @@ class LibreTranslateService
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Gemini Translation Service
+// ─────────────────────────────────────────────────────────────────────────────
+
+class GeminiTranslateService
+{
+    private int $timeout;
+    private string $apiKey;
+    private array $langNames = ['ar' => 'Arabic', 'fr' => 'French', 'en' => 'English'];
+
+    public function __construct()
+    {
+        $this->timeout = defined('TRANSLATION_TIMEOUT')
+            ? max(5, (int) TRANSLATION_TIMEOUT)
+            : 30;
+        $this->apiKey = defined('GEMINI_API_KEY') ? GEMINI_API_KEY : '';
+    }
+
+    public function translate(string $text, string $from, string $to, bool $isHtml = false): string
+    {
+        if (empty($this->apiKey)) {
+            error_log("[GeminiTranslate] GEMINI_API_KEY not configured");
+            return $text;
+        }
+
+        $fromName = $this->langNames[$from] ?? $from;
+        $toName = $this->langNames[$to] ?? $to;
+
+        $prompt = "Translate the following {$fromName} text to {$toName}. "
+                . ($isHtml ? "Preserve all HTML tags exactly as-is. " : "")
+                . "Return ONLY the translated text, no explanations, no quotes.\n\n{$text}";
+
+        $payload = json_encode([
+            'contents' => [['parts' => [['text' => $prompt]]]],
+            'generationConfig' => ['temperature' => 0.3, 'maxOutputTokens' => 2048],
+        ]);
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$this->apiKey}";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+        ]);
+
+        $body = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlErr) {
+            error_log("[GeminiTranslate] cURL error ({$from}→{$to}): {$curlErr}");
+            return $text;
+        }
+
+        if ($httpCode !== 200) {
+            error_log("[GeminiTranslate] HTTP {$httpCode} ({$from}→{$to}): " . substr((string) $body, 0, 300));
+            return $text;
+        }
+
+        $data = json_decode($body, true);
+        $translated = trim($data['candidates'][0]['content']['parts'][0]['text'] ?? '');
+
+        return $translated !== '' ? $translated : $text;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Google Translate Service
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -243,17 +315,18 @@ class GoogleTranslateService
 
 /**
  * Return the translation service instance based on TRANSLATION_PROVIDER.
- * Defaults to Google Translate (more reliable), falls back to LibreTranslate.
+ * Options: 'gemini' (uses GEMINI_API_KEY), 'google', 'libretranslate'.
+ * Defaults to 'google'.
  */
 function translation_service_instance()
 {
     $provider = defined('TRANSLATION_PROVIDER') ? strtolower(TRANSLATION_PROVIDER) : 'google';
 
-    if ($provider === 'libretranslate') {
-        return new LibreTranslateService();
-    }
-
-    return new GoogleTranslateService();
+    return match ($provider) {
+        'gemini'        => new GeminiTranslateService(),
+        'libretranslate' => new LibreTranslateService(),
+        default         => new GoogleTranslateService(),
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

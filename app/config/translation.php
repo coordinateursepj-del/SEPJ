@@ -1,18 +1,21 @@
 <?php
 /**
  * Translation Configuration - SEPJ Gabès
- * Powered by LibreTranslate — free, open-source, no API key required.
  *
- * Self-hosting (recommended for production):
- *   https://github.com/LibreTranslate/LibreTranslate
- *   Then set TRANSLATION_ENDPOINT to your own server, e.g. http://localhost:5000/translate
+ * Providers:
+ *   'gemini'        – uses Gemini 2.0 Flash + your GEMINI_API_KEY (best Arabic accuracy)
+ *   'google'        – free public endpoint or Google Cloud Translation API v2 with key
+ *   'libretranslate' – free, open-source, no key required
+ *
+ * For Gemini: set GEMINI_API_KEY in app/config/app.php and TRANSLATION_PROVIDER to 'gemini'.
+ * That way one key powers both the ✦ AI button AND translation.
  */
 
 // Set to false to disable auto-translation completely without removing any code.
 define('ENABLE_TRANSLATION', true);
 
-// Translation provider: 'google' or 'libretranslate'
-define('TRANSLATION_PROVIDER', 'google');
+// Translation provider: 'gemini', 'google', or 'libretranslate'
+define('TRANSLATION_PROVIDER', 'gemini');
 
 // LibreTranslate HTTP endpoint (no API key required).
 // Using fedilab public instance — tested and working.
