@@ -36,6 +36,11 @@ try {
     ");
     $images->execute([$perPage, $offset]);
     $images = $images->fetchAll();
+
+    $images = array_values(array_filter($images, function ($img) {
+        if (empty($img['file_path'])) return false;
+        return file_exists(UPLOAD_PATH . '/' . ltrim($img['file_path'], '/'));
+    }));
 } catch (PDOException $e) { $images = []; $totalPages = 1; }
 
 $imageUrls = array_map(function($img) { return upload_url($img['file_path']); }, $images);
